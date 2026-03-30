@@ -10,7 +10,8 @@
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
     "db:studio": "drizzle-kit studio",
-    "db:push": "drizzle-kit push"
+    "db:push": "drizzle-kit push",
+    "build:widget": "node build-widget.mjs"
   },
   "dependencies": {
     "@ai-sdk/openai": "^3.0.48",
