@@ -1,0 +1,139 @@
+import * as cheerio from "cheerio";
+
+export interface ScrapedPage {
+  url: string;
+  title: string;
+  content: string;
+}
+
+const BLOCKED_SELECTORS = [
+  "nav", "footer", "header", "script", "style", "noscript",
+  "[role='navigation']", "[role='banner']", "[role='contentinfo']",
+  ".cookie-banner", ".nav", ".footer", ".header", ".sidebar",
+  "#nav", "#footer", "#header", "#sidebar",
+];
+
+function extractText($: ReturnType<typeof cheerio.load>): string {
+  // Remove unwanted elements
+  BLOCKED_SELECTORS.forEach((sel) => {
+    try { $(sel).remove(); } catch { /* ignore invalid selectors */ }
+  });
+
+  // Get text from body
+  const text = $("body").text();
+  // Normalize whitespace
+  return text
+    .replace(/\t/g, " ")
+    .replace(/[ ]{2,}/g, " ")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
+}
+
+function extractInternalLinks(
+  $: ReturnType<typeof cheerio.load>,
+  baseUrl: string
+): string[] {
+  const links: string[] = [];
+  const baseHost = new URL(baseUrl).hostname;
+
+  $("a[href]").each((_, el) => {
+    try {
+      const href = $(el).attr("href");
+      if (!href) return;
+
+      // Resolve relative URLs
+      const resolved = new URL(href, baseUrl);
+
+      // Only same-domain, http/https, not anchors/files
+      if (
+        resolved.hostname === baseHost &&
+        (resolved.protocol === "http:" || resolved.protocol === "https:") &&
+        !resolved.pathname.match(/\.(pdf|jpg|jpeg|png|gif|svg|mp4|zip|doc|docx)$/i)
+      ) {
+        // Normalize: remove trailing slash, remove query/hash
+        const normalized = resolved.origin + resolved.pathname.replace(/\/$/, "");
+        links.push(normalized);
+      }
+    } catch {
+      // ignore invalid URLs
+    }
+  });
+
+  // Deduplicate
+  return [...new Set(links)];
+}
+
+async function fetchPage(url: string): Promise<{ html: string; finalUrl: string } | null> {
+  try {
+    const res = await fetch(url, {
+      headers: {
+        "User-Agent": "Mozilla/5.0 (compatible; ChatBotSaaS/1.0; +https://chatbotsaas.com)",
+        Accept: "text/html,application/xhtml+xml",
+      },
+      redirect: "follow",
+      signal: AbortSignal.timeout(10000), // 10s timeout
+    });
+
+    if (!res.ok) return null;
+    const contentType = res.headers.get("content-type") ?? "";
+    if (!contentType.includes("text/html")) return null;
+
+    const html = await res.text();
+    return { html, finalUrl: res.url };
+  } catch {
+    return null;
+  }
+}
+
+export async function scrapeWebsite(
+  url: string,
+  maxPages = 10
+): Promise<ScrapedPage[]> {
+  const results: ScrapedPage[] = [];
+  const visited = new Set<string>();
+  const queue: string[] = [url];
+
+  while (queue.length > 0 && results.length < maxPages) {
+    const currentUrl = queue.shift()!;
+
+    // Normalize URL for deduplication
+    let normalizedUrl: string;
+    try {
+      const parsed = new URL(currentUrl);
+      normalizedUrl = parsed.origin + parsed.pathname.replace(/\/$/, "");
+    } catch {
+      continue;
+    }
+
+    if (visited.has(normalizedUrl)) continue;
+    visited.add(normalizedUrl);
+
+    const fetched = await fetchPage(currentUrl);
+    if (!fetched) continue;
+
+    const $ = cheerio.load(fetched.html);
+    const title = $("title").text().trim() || $("h1").first().text().trim() || normalizedUrl;
+
+    // Collect internal links before extractText removes nav elements
+    const internalLinks = extractInternalLinks($, currentUrl);
+
+    const content = extractText($);
+    if (content.length < 100) continue; // skip near-empty pages
+
+    results.push({
+      url: normalizedUrl,
+      title,
+      content,
+    });
+
+    // Add new links to queue
+    for (const link of internalLinks) {
+      const norm = link.replace(/\/$/, "");
+      if (!visited.has(norm) && !queue.includes(link)) {
+        queue.push(link);
+      }
+    }
+  }
+
+  return results;
+}
