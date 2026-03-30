@@ -4,7 +4,7 @@
 
 | Layer | Technology | Version | Why |
 |-------|-----------|---------|-----|
-| Framework | Next.js | 15 (App Router) | Full-stack, serverless-ready, Vercel-native |
+| Framework | Next.js | 16 (App Router) | Full-stack, serverless-ready, Vercel-native |
 | Auth | NextAuth.js (Auth.js) | v5 | Credentials provider, JWT sessions, extensible to OAuth |
 | Database | Neon | latest | Serverless Postgres + pgvector, generous free tier |
 | ORM | Drizzle ORM | latest | Type-safe, lightweight, pgvector support, works with Neon |

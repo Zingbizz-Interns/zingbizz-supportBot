@@ -24,7 +24,7 @@ An AI-powered chatbot SaaS MVP. Small business owners connect their website URL 
 
 ## Tech Stack (Quick Reference)
 
-- **Framework**: Next.js 15 App Router
+- **Framework**: Next.js 16 App Router
 - **Auth**: NextAuth.js v5 (Credentials provider, JWT sessions)
 - **Database**: Neon (Postgres + pgvector) + Drizzle ORM
 - **LLM**: xAI Grok via Vercel AI SDK (`@ai-sdk/xai`)
@@ -100,7 +100,7 @@ ORDER BY embedding <=> $queryEmbedding LIMIT 5
 - Sessions are JWT (no DB session table needed for MVP)
 - Protected routes: all `(dashboard)` group routes
 - Public routes: `/api/chat`, `/api/chatbots/[id]/config`, `public/widget.js`
-- `middleware.ts` handles route protection automatically
+- `proxy.ts` handles route protection automatically
 
 ---
 

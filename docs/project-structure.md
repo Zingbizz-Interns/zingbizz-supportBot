@@ -103,7 +103,7 @@ chat-bot/
 │   ├── auth.ts                           # NextAuth.js v5 config
 │   └── rate-limit.ts                     # Upstash Redis rate limiter
 │
-├── middleware.ts                         # Route protection (session check for /dashboard/*)
+├── proxy.ts                              # Route protection (session check for /dashboard/*)
 │
 ├── public/
 │   └── widget.js                         # Bundled embeddable chat widget (esbuild output)
@@ -144,6 +144,6 @@ chat-bot/
 | `lib/db/schema.ts` | Single source of truth for DB schema |
 | `lib/ai/rag.ts` | Core RAG pipeline — touch with care |
 | `lib/ingestion/pipeline.ts` | Ingestion orchestrator — called by `/api/train` |
-| `middleware.ts` | Route protection — all `/dashboard/*` require auth |
+| `proxy.ts` | Route protection — all `/dashboard/*` require auth |
 | `widget-src/index.ts` | Widget entry — compiled to `public/widget.js` |
 | `CLAUDE.md` | Instructions for AI assistants working on this project |

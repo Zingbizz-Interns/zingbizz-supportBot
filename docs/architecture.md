@@ -138,4 +138,4 @@ Dashboard polls `GET /api/chatbots/{id}/status` every 3 seconds while `training`
 - Session stored as JWT (no DB adapter needed for MVP)
 - Protected routes: all `/dashboard/*` paths
 - Public routes: `/api/chat`, `/api/chatbots/{id}/config`, `/widget.js`
-- Middleware in `middleware.ts` handles route protection
+- Proxy in `proxy.ts` handles route protection
