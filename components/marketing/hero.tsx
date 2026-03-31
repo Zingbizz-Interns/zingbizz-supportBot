@@ -1,4 +1,27 @@
+"use client";
+
 import Link from "next/link";
+import { motion, Variants } from "framer-motion";
+
+const containerVariants: Variants = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: {
+      staggerChildren: 0.15,
+      delayChildren: 0.2,
+    },
+  },
+};
+
+const itemVariants: Variants = {
+  hidden: { opacity: 0, y: 20 },
+  visible: {
+    opacity: 1,
+    y: 0,
+    transition: { duration: 0.6, ease: [0.22, 1, 0.36, 1] },
+  },
+};
 
 export function Hero() {
   return (
@@ -6,46 +29,70 @@ export function Hero() {
       <div className="max-w-7xl mx-auto px-4 md:px-8">
         <div className="grid md:grid-cols-2 gap-16 items-center">
           {/* Text */}
-          <div>
-            <div className="inline-flex items-center rounded-full bg-[#8C9A84]/15 px-4 py-1.5 text-xs font-[family-name:var(--font-sans)] text-[#8C9A84] uppercase tracking-widest mb-8">
+          <motion.div
+            variants={containerVariants}
+            initial="hidden"
+            animate="visible"
+          >
+            <motion.div
+              variants={itemVariants}
+              className="inline-flex items-center rounded-full bg-[#8C9A84]/15 px-4 py-1.5 text-xs font-[family-name:var(--font-sans)] text-[#8C9A84] uppercase tracking-widest mb-8"
+            >
               AI-Powered Support
-            </div>
-            <h1 className="font-[family-name:var(--font-serif)] text-5xl md:text-7xl font-bold text-[#2D3A31] leading-[1.05] mb-6">
+            </motion.div>
+            <motion.h1
+              variants={itemVariants}
+              className="font-[family-name:var(--font-serif)] text-5xl md:text-7xl font-bold text-[#2D3A31] leading-[1.05] mb-6"
+            >
               Your website,
               <br />
               now <em>answers</em>
               <br />
               questions.
-            </h1>
-            <p className="font-[family-name:var(--font-sans)] text-lg text-[#2D3A31]/70 max-w-md mb-10 leading-relaxed">
+            </motion.h1>
+            <motion.p
+              variants={itemVariants}
+              className="font-[family-name:var(--font-sans)] text-lg text-[#2D3A31]/70 max-w-md mb-10 leading-relaxed"
+            >
               Create an AI chatbot trained on your business in minutes. Paste a
               URL, let it learn, and embed it on your site with one line of
               code.
-            </p>
-            <div className="flex flex-col sm:flex-row gap-4">
+            </motion.p>
+            <motion.div
+              variants={itemVariants}
+              className="flex flex-col sm:flex-row gap-4"
+            >
               <Link
                 href="/signup"
-                className="inline-flex items-center justify-center rounded-full bg-[#2D3A31] text-white px-10 py-4 text-sm font-[family-name:var(--font-sans)] uppercase tracking-widest transition-colors duration-300 hover:bg-[#3d5245]"
+                className="inline-flex items-center justify-center rounded-full bg-[#2D3A31] text-white px-10 py-4 text-sm font-[family-name:var(--font-sans)] uppercase tracking-widest transition-all duration-300 hover:bg-[#3d5245] hover:-translate-y-1 hover:shadow-[0_10px_20px_rgba(45,58,49,0.2)] active:scale-95 active:translate-y-0"
               >
                 Start for free
               </Link>
               <a
                 href="#how-it-works"
-                className="inline-flex items-center justify-center rounded-full border border-[#8C9A84] text-[#8C9A84] px-10 py-4 text-sm font-[family-name:var(--font-sans)] uppercase tracking-widest transition-colors duration-300 hover:bg-[#8C9A84] hover:text-white"
+                className="inline-flex items-center justify-center rounded-full border border-[#8C9A84] text-[#8C9A84] px-10 py-4 text-sm font-[family-name:var(--font-sans)] uppercase tracking-widest transition-all duration-300 hover:bg-[#8C9A84] hover:text-white hover:-translate-y-1 hover:shadow-lg active:scale-95 active:translate-y-0"
               >
                 See how it works
               </a>
-            </div>
-          </div>
+            </motion.div>
+          </motion.div>
 
           {/* Decorative arch image */}
-          <div className="relative flex justify-center md:justify-end">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95, x: 20 }}
+            animate={{ opacity: 1, scale: 1, x: 0 }}
+            transition={{ duration: 0.8, delay: 0.4, ease: [0.22, 1, 0.36, 1] }}
+            className="relative flex justify-center md:justify-end"
+          >
             <div
-              className="w-72 h-96 md:w-80 md:h-[480px] bg-[#DCCFC2] flex items-center justify-center"
+              className="w-72 h-96 md:w-80 md:h-[480px] bg-[#DCCFC2] flex items-center justify-center relative overflow-hidden group"
               style={{ borderRadius: "9999px 9999px 40px 40px" }}
             >
-              <div className="text-center px-8">
-                <div className="w-16 h-16 rounded-full bg-[#8C9A84]/30 flex items-center justify-center mx-auto mb-6">
+              {/* Subtle background animation inside the arch */}
+              <div className="absolute inset-0 bg-gradient-to-t from-[#8C9A84]/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700"></div>
+
+              <div className="text-center px-8 relative z-10 transition-transform duration-500 group-hover:-translate-y-2">
+                <div className="w-16 h-16 rounded-full bg-[#8C9A84]/30 flex items-center justify-center mx-auto mb-6 transform transition-transform duration-500 group-hover:scale-110">
                   <svg
                     width="28"
                     height="28"
@@ -66,15 +113,21 @@ export function Hero() {
               </div>
             </div>
             {/* Floating stat card */}
-            <div className="absolute -bottom-4 -left-4 md:left-0 bg-white rounded-2xl p-4 shadow-[0_10px_30px_rgba(45,58,49,0.1)]">
+            <motion.div
+              initial={{ opacity: 0, y: 30 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 1, duration: 0.6, type: "spring", stiffness: 100 }}
+              whileHover={{ y: -5, transition: { duration: 0.2 } }}
+              className="absolute -bottom-4 -left-4 md:left-0 bg-white rounded-2xl p-4 shadow-[0_10px_30px_rgba(45,58,49,0.1)] cursor-default"
+            >
               <p className="font-[family-name:var(--font-sans)] text-xs text-[#8C9A84] uppercase tracking-wide mb-1">
                 Setup time
               </p>
               <p className="font-[family-name:var(--font-serif)] text-2xl font-bold text-[#2D3A31]">
                 &lt; 5 min
               </p>
-            </div>
-          </div>
+            </motion.div>
+          </motion.div>
         </div>
       </div>
     </section>

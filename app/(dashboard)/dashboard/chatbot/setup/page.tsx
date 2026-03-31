@@ -35,6 +35,30 @@ export default function ChatbotSetupPage() {
   const [error, setError] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // Fetch existing chatbot on mount so we don't try to duplicate it
+  useEffect(() => {
+    async function fetchChatbot() {
+      try {
+        const res = await fetch("/api/chatbots");
+        if (res.ok) {
+          const data = await res.json() as { chatbot: Chatbot | null };
+          if (data.chatbot) {
+            setChatbot(data.chatbot);
+            // If it's already training when we load, jump to training step
+            if (data.chatbot.trainingStatus === "training" && step === "setup") {
+              setStep("training");
+            } else if (data.chatbot.trainingStatus === "ready" && step === "training") {
+              setStep("ready");
+            }
+          }
+        }
+      } catch (err) {
+        console.error("Failed to fetch chatbot", err);
+      }
+    }
+    fetchChatbot();
+  }, [step]);
+
   // Poll training status
   useEffect(() => {
     if (step !== "training" || !chatbot?.id) return;
@@ -148,6 +172,18 @@ export default function ChatbotSetupPage() {
     try {
       // Step 1: Create chatbot if not yet created
       let currentChatbot = chatbot;
+      
+      if (!currentChatbot) {
+        // Fallback check in case the API returned slowly on mount
+        const getRes = await fetch("/api/chatbots");
+        if (getRes.ok) {
+          const getData = await getRes.json() as { chatbot: Chatbot | null };
+          if (getData.chatbot) {
+            currentChatbot = getData.chatbot;
+          }
+        }
+      }
+
       if (!currentChatbot) {
         const chatbotRes = await fetch("/api/chatbots", {
           method: "POST",
@@ -162,8 +198,8 @@ export default function ChatbotSetupPage() {
 
         const chatbotData = await chatbotRes.json() as { chatbot: Chatbot };
         currentChatbot = chatbotData.chatbot;
-        setChatbot(currentChatbot);
       }
+      setChatbot(currentChatbot);
 
       // Step 2: Upload files and collect keys
       const fileKeys: string[] = [...uploadedFileKeys];
