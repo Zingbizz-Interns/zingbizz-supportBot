@@ -6,15 +6,19 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 
 interface Source {
-  id: string;
   url?: string;
   title: string;
   source_type: "scrape" | "upload";
+  file_name?: string;
   chunk_count: number;
-  created_at?: string;
+  created_at?: string | null;
 }
 
-function formatDate(dateStr?: string): string {
+function sourceKey(source: Source): string {
+  return source.url ?? source.file_name ?? source.title;
+}
+
+function formatDate(dateStr?: string | null): string {
   if (!dateStr) return "—";
   try {
     return new Date(dateStr).toLocaleDateString("en-US", {
@@ -32,7 +36,7 @@ export default function SourcesPage() {
   const [chatbotId, setChatbotId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [deletingKey, setDeletingKey] = useState<string | null>(null);
 
   useEffect(() => {
     async function fetchData() {
@@ -40,7 +44,7 @@ export default function SourcesPage() {
         const chatbotRes = await fetch("/api/chatbots");
         if (!chatbotRes.ok) throw new Error("Failed to load chatbot");
         const chatbotData = await chatbotRes.json();
-        const bot = chatbotData.data;
+        const bot = chatbotData.chatbot;
         if (!bot) {
           setLoading(false);
           return;
@@ -50,7 +54,7 @@ export default function SourcesPage() {
         const sourcesRes = await fetch(`/api/chatbots/${bot.id}/sources`);
         if (!sourcesRes.ok) throw new Error("Failed to load sources");
         const sourcesData = await sourcesRes.json();
-        setSources(sourcesData.data ?? []);
+        setSources(sourcesData.sources ?? []);
       } catch (err: unknown) {
         setError(err instanceof Error ? err.message : "Something went wrong");
       } finally {
@@ -60,23 +64,24 @@ export default function SourcesPage() {
     fetchData();
   }, []);
 
-  async function handleDelete(sourceId: string) {
+  async function handleDelete(source: Source) {
     if (!chatbotId) return;
-    setDeletingId(sourceId);
+    const key = sourceKey(source);
+    setDeletingKey(key);
     try {
       const res = await fetch(
-        `/api/chatbots/${chatbotId}/sources/${sourceId}`,
+        `/api/chatbots/${chatbotId}/sources/${encodeURIComponent(key)}`,
         { method: "DELETE" }
       );
       if (!res.ok) {
         const body = await res.json().catch(() => ({}));
         throw new Error(body.error ?? "Failed to delete source");
       }
-      setSources((prev) => prev.filter((s) => s.id !== sourceId));
+      setSources((prev) => prev.filter((s) => sourceKey(s) !== key));
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Something went wrong");
     } finally {
-      setDeletingId(null);
+      setDeletingKey(null);
     }
   }
 
@@ -142,7 +147,7 @@ export default function SourcesPage() {
             <ul className="divide-y divide-[#E6E2DA]">
               {sources.map((source) => (
                 <li
-                  key={source.id}
+                  key={sourceKey(source)}
                   className="flex flex-col md:grid md:grid-cols-[1fr_120px_80px_140px_44px] gap-2 md:gap-4 items-start md:items-center px-6 py-4"
                 >
                   {/* Title + URL */}
@@ -183,12 +188,12 @@ export default function SourcesPage() {
 
                   {/* Delete */}
                   <button
-                    onClick={() => handleDelete(source.id)}
-                    disabled={deletingId === source.id}
+                    onClick={() => handleDelete(source)}
+                    disabled={deletingKey === sourceKey(source)}
                     aria-label="Delete source"
                     className="flex items-center justify-center w-8 h-8 rounded-full text-[#8C9A84] hover:text-[#C27B66] hover:bg-[#C27B66]/10 transition-colors duration-200 disabled:opacity-40"
                   >
-                    {deletingId === source.id ? (
+                    {deletingKey === sourceKey(source) ? (
                       <Loader2 size={14} strokeWidth={1.5} className="animate-spin" />
                     ) : (
                       <Trash2 size={14} strokeWidth={1.5} />

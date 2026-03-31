@@ -38,25 +38,29 @@ export async function searchDocuments(
 
 export async function deleteDocumentsBySource(
   chatbotId: string,
-  sourceUrl: string
+  sourceKey: string
 ): Promise<void> {
   await db.execute(sql`
     DELETE FROM documents
     WHERE chatbot_id = ${chatbotId}
-    AND metadata->>'url' = ${sourceUrl}
+    AND (
+      metadata->>'url' = ${sourceKey}
+      OR metadata->>'file_name' = ${sourceKey}
+    )
   `);
 }
 
 export async function getDocumentSources(
   chatbotId: string
-): Promise<Array<{ url: string | null; title: string | null; source_type: string; file_name: string | null; chunk_count: number }>> {
+): Promise<Array<{ url: string | null; title: string | null; source_type: string; file_name: string | null; chunk_count: number; created_at: string | null }>> {
   const result = await db.execute(sql`
     SELECT
       metadata->>'url' AS url,
       metadata->>'title' AS title,
       metadata->>'source_type' AS source_type,
       metadata->>'file_name' AS file_name,
-      COUNT(*) AS chunk_count
+      COUNT(*) AS chunk_count,
+      MIN(created_at) AS created_at
     FROM documents
     WHERE chatbot_id = ${chatbotId}
     GROUP BY
@@ -73,5 +77,6 @@ export async function getDocumentSources(
     source_type: string;
     file_name: string | null;
     chunk_count: number;
+    created_at: string | null;
   }>;
 }

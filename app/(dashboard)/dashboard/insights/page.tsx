@@ -13,12 +13,12 @@ interface QuestionInsight {
 
 interface RecentUnanswered {
   question: string;
-  created_at?: string;
+  askedAt?: Date | string;
 }
 
 interface InsightsData {
   topQuestions?: QuestionInsight[];
-  recentUnanswered?: RecentUnanswered[];
+  unansweredQuestions?: RecentUnanswered[];
 }
 
 function timeAgo(dateStr?: string): string {
@@ -48,7 +48,7 @@ export default function InsightsPage() {
         const chatbotRes = await fetch("/api/chatbots");
         if (!chatbotRes.ok) throw new Error("Failed to load chatbot");
         const chatbotData = await chatbotRes.json();
-        const bot = chatbotData.data;
+        const bot = chatbotData.chatbot;
         if (!bot) {
           setLoading(false);
           return;
@@ -57,7 +57,7 @@ export default function InsightsPage() {
         const insightsRes = await fetch(`/api/chatbots/${bot.id}/insights`);
         if (!insightsRes.ok) throw new Error("Failed to load insights");
         const insightsData = await insightsRes.json();
-        setInsights(insightsData.data ?? {});
+        setInsights(insightsData);
       } catch (err: unknown) {
         setError(err instanceof Error ? err.message : "Something went wrong");
       } finally {
@@ -68,7 +68,7 @@ export default function InsightsPage() {
   }, []);
 
   const topQuestions = insights?.topQuestions ?? [];
-  const recentUnanswered = insights?.recentUnanswered ?? [];
+  const recentUnanswered = insights?.unansweredQuestions ?? [];
   const hasData = topQuestions.length > 0 || recentUnanswered.length > 0;
 
   if (loading) {
@@ -174,9 +174,9 @@ export default function InsightsPage() {
                         <p className="font-sans text-sm text-[#2D3A31] leading-relaxed flex-1">
                           {q.question}
                         </p>
-                        {q.created_at && (
+                        {q.askedAt && (
                           <span className="font-sans text-xs text-[#8C9A84] flex-shrink-0 mt-0.5">
-                            {timeAgo(q.created_at)}
+                            {timeAgo(String(q.askedAt))}
                           </span>
                         )}
                       </li>

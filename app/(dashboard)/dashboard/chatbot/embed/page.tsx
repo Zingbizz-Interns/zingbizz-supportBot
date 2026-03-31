@@ -25,7 +25,7 @@ export default function EmbedPage() {
         const res = await fetch("/api/chatbots");
         if (!res.ok) throw new Error("Failed to load chatbot");
         const data = await res.json();
-        setChatbot(data.data ?? null);
+        setChatbot(data.chatbot ?? null);
       } catch (err: unknown) {
         setError(err instanceof Error ? err.message : "Something went wrong");
       } finally {

@@ -84,19 +84,23 @@ export async function POST(request: Request) {
       history: validHistory,
     });
 
+    // Fallback path: return the message directly without calling the LLM
+    if (!result.answered || result.stream === null) {
+      return new Response(result.fallbackText ?? "", {
+        status: 200,
+        headers: { ...CORS_HEADERS, "Content-Type": "text/plain; charset=utf-8" },
+      });
+    }
+
     const streamResponse = result.stream.toTextStreamResponse();
 
-    // Merge CORS headers into the streaming response
+    // Merge CORS headers and sources header into the streaming response
     const responseHeaders = new Headers(streamResponse.headers);
     for (const [key, value] of Object.entries(CORS_HEADERS)) {
       responseHeaders.set(key, value);
     }
-    // Add sources as a response header (JSON-encoded array)
     if (result.sources.length > 0) {
-      responseHeaders.set(
-        "X-Sources",
-        JSON.stringify(result.sources)
-      );
+      responseHeaders.set("X-Sources", JSON.stringify(result.sources));
     }
 
     return new Response(streamResponse.body, {

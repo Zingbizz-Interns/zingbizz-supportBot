@@ -3,7 +3,7 @@
 ```
 chat-bot/
 │
-├── app/                                  # Next.js 15 App Router
+├── app/                                  # Next.js 16 App Router
 │   ├── (marketing)/                      # Route group: public landing pages
 │   │   ├── layout.tsx                    # Marketing layout (full botanical style)
 │   │   └── page.tsx                      # Landing page
@@ -70,15 +70,10 @@ chat-bot/
 │   │   ├── how-it-works.tsx
 │   │   └── footer.tsx
 │   │
-│   ├── dashboard/                        # Dashboard-specific components
-│   │   ├── sidebar.tsx                   # Left nav (desktop), bottom tab (mobile)
-│   │   ├── training-status.tsx           # Status indicator + progress bar
-│   │   ├── source-list.tsx               # List of scraped pages + files
-│   │   ├── insights-table.tsx            # Top/unanswered questions table
-│   │   └── embed-code.tsx                # Code block with copy button
-│   │
-│   └── widget-preview/
-│       └── chat-preview.tsx              # Live preview of the chat widget in dashboard
+│   └── dashboard/                        # Dashboard-specific components
+│       ├── sidebar.tsx                   # Fixed left nav (desktop only)
+│       ├── bottom-nav.tsx                # Bottom tab bar (mobile only)
+│       └── top-bar.tsx                   # Mobile header with brand name + sign-out
 │
 ├── lib/
 │   ├── db/
@@ -103,7 +98,7 @@ chat-bot/
 │   ├── auth.ts                           # NextAuth.js v5 config
 │   └── rate-limit.ts                     # Upstash Redis rate limiter
 │
-├── proxy.ts                              # Route protection (session check for /dashboard/*)
+├── proxy.ts                              # NextAuth route protection (session check for /dashboard/*)
 │
 ├── public/
 │   └── widget.js                         # Bundled embeddable chat widget (esbuild output)

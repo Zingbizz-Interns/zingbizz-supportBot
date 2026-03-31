@@ -6,6 +6,7 @@ import {
   boolean,
   jsonb,
   index,
+  uniqueIndex,
   customType,
 } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
@@ -32,9 +33,30 @@ const vector = customType<{ data: number[]; driverData: string }>({
 export const users = pgTable("users", {
   id: uuid("id").primaryKey().defaultRandom(),
   email: text("email").notNull().unique(),
-  passwordHash: text("password_hash").notNull(),
+  passwordHash: text("password_hash"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
+
+// ─── OAuth Accounts ───────────────────────────────────────────────────────────
+
+export const accounts = pgTable(
+  "accounts",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    provider: text("provider").notNull(),
+    providerAccountId: text("provider_account_id").notNull(),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+  },
+  (table) => ({
+    providerAccountIdx: uniqueIndex("accounts_provider_account_idx").on(
+      table.provider,
+      table.providerAccountId
+    ),
+  })
+);
 
 // ─── Chatbots ─────────────────────────────────────────────────────────────────
 
@@ -99,6 +121,11 @@ export const queries = pgTable(
 
 export const usersRelations = relations(users, ({ many }) => ({
   chatbots: many(chatbots),
+  accounts: many(accounts),
+}));
+
+export const accountsRelations = relations(accounts, ({ one }) => ({
+  user: one(users, { fields: [accounts.userId], references: [users.id] }),
 }));
 
 export const chatbotsRelations = relations(chatbots, ({ one, many }) => ({
@@ -125,6 +152,8 @@ export const queriesRelations = relations(queries, ({ one }) => ({
 
 export type User = typeof users.$inferSelect;
 export type NewUser = typeof users.$inferInsert;
+export type Account = typeof accounts.$inferSelect;
+export type NewAccount = typeof accounts.$inferInsert;
 export type Chatbot = typeof chatbots.$inferSelect;
 export type NewChatbot = typeof chatbots.$inferInsert;
 export type Document = typeof documents.$inferSelect;

@@ -15,7 +15,8 @@ interface RagQueryOptions {
 }
 
 interface RagResult {
-  stream: ReturnType<typeof streamChatResponse>;
+  stream: ReturnType<typeof streamChatResponse> | null;
+  fallbackText: string | null;
   sources: string[];
   answered: boolean;
 }
@@ -46,15 +47,9 @@ export async function ragQuery({
     answered,
   }).catch(console.error);
 
-  // 6. If below threshold, return fallback as a stream
+  // 6. If below threshold, return fallback directly — no LLM call
   if (!answered || results.length === 0) {
-    const fallbackText = chatbot.fallbackMessage;
-    // Create a minimal stream that returns the fallback message
-    const stream = streamChatResponse(
-      `You must respond with ONLY this exact text and nothing else: "${fallbackText}"`,
-      [{ role: "user", content: message }]
-    );
-    return { stream, sources: [], answered: false };
+    return { stream: null, fallbackText: chatbot.fallbackMessage, sources: [], answered: false };
   }
 
   // 7. Build context from retrieved chunks
@@ -80,7 +75,7 @@ export async function ragQuery({
   // 11. Stream response
   const stream = streamChatResponse(systemPrompt, messages);
 
-  return { stream, sources, answered: true };
+  return { stream, fallbackText: null, sources, answered: true };
 }
 
 function buildSystemPrompt(chatbotName: string, context: string): string {

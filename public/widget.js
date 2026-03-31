@@ -1,10 +1,9 @@
-"use strict";(()=>{async function M(t,e){let o=await fetch(`${e}/api/chatbots/${t}/config`);if(!o.ok)throw new Error("Failed to fetch chatbot config");return o.json()}async function L(t,e,o,i,s,a,c){var b,p;try{let r=await fetch(`${i}/api/chat`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({chatbotId:t,message:e,history:o})});if(!r.ok)throw new Error(`Chat request failed: ${r.status}`);let y=(b=r.body)==null?void 0:b.getReader();if(!y)throw new Error("No response body");let F=new TextDecoder,h="",v=[];for(;;){let{done:I,value:D}=await y.read();if(I)break;h+=F.decode(D,{stream:!0});let E=h.split(`
-`);h=(p=E.pop())!=null?p:"";for(let C of E){if(!C.startsWith("data: "))continue;let k=C.slice(6).trim();if(k!=="[DONE]")try{let d=JSON.parse(k);d.type==="text"&&d.text?s(d.text):d.type==="finish"&&d.sources&&v.push(...d.sources)}catch(d){}}}a(v)}catch(r){c(r instanceof Error?r:new Error(String(r)))}}function B(t){return`
+"use strict";(()=>{async function y(e,t){let o=await fetch(`${t}/api/chatbots/${e}/config`);if(!o.ok)throw new Error("Failed to fetch chatbot config");return o.json()}async function v(e,t,o,i,s,a,c){var b;try{let r=await fetch(`${i}/api/chat`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({chatbotId:e,message:t,history:o})});if(!r.ok)throw new Error(`Chat request failed: ${r.status}`);let d=r.headers.get("X-Sources"),T=d?JSON.parse(d):[],x=(b=r.body)==null?void 0:b.getReader();if(!x)throw new Error("No response body");let H=new TextDecoder;for(;;){let{done:$,value:A}=await x.read();if($)break;let w=H.decode(A,{stream:!0});w&&s(w)}a(T)}catch(r){c(r instanceof Error?r:new Error(String(r)))}}function E(e){return`
     #cb-container * { box-sizing: border-box; font-family: system-ui, -apple-system, sans-serif; }
     #cb-bubble {
       position: fixed; bottom: 24px; right: 24px; z-index: 999999;
       width: 56px; height: 56px; border-radius: 50%;
-      background-color: ${t}; border: none; cursor: pointer;
+      background-color: ${e}; border: none; cursor: pointer;
       box-shadow: 0 4px 20px rgba(0,0,0,0.25);
       display: flex; align-items: center; justify-content: center;
       transition: transform 0.2s ease, box-shadow 0.2s ease;
@@ -24,7 +23,7 @@
     #cb-window.cb-hidden { opacity: 0; transform: scale(0.92); pointer-events: none; }
     #cb-header {
       padding: 16px 20px; border-bottom: 1px solid #F2F0EB;
-      background: ${t}; color: white;
+      background: ${e}; color: white;
       display: flex; align-items: center; justify-content: space-between;
     }
     #cb-header-title { font-weight: 600; font-size: 15px; }
@@ -43,7 +42,7 @@
     #cb-messages::-webkit-scrollbar-track { background: transparent; }
     #cb-messages::-webkit-scrollbar-thumb { background: #E6E2DA; border-radius: 2px; }
     .cb-msg { max-width: 85%; padding: 10px 14px; border-radius: 16px; font-size: 14px; line-height: 1.5; }
-    .cb-msg-user { background: ${t}; color: white; align-self: flex-end; border-bottom-right-radius: 4px; }
+    .cb-msg-user { background: ${e}; color: white; align-self: flex-end; border-bottom-right-radius: 4px; }
     .cb-msg-assistant { background: #F2F0EB; color: #2D3A31; align-self: flex-start; border-bottom-left-radius: 4px; }
     .cb-msg-assistant.cb-streaming::after { content: '\u258B'; animation: cb-blink 1s infinite; }
     @keyframes cb-blink { 0%,100% { opacity: 1; } 50% { opacity: 0; } }
@@ -56,10 +55,10 @@
       font-size: 14px; color: #2D3A31; outline: none;
       transition: border-color 0.2s;
     }
-    #cb-input:focus { border-color: ${t}; }
+    #cb-input:focus { border-color: ${e}; }
     #cb-send-btn {
       width: 40px; height: 40px; border-radius: 50%;
-      background: ${t}; border: none; cursor: pointer;
+      background: ${e}; border: none; cursor: pointer;
       display: flex; align-items: center; justify-content: center;
       flex-shrink: 0; transition: opacity 0.2s;
     }
@@ -71,7 +70,7 @@
       #cb-window { width: calc(100vw - 16px); right: 8px; bottom: 80px; }
       #cb-bubble { bottom: 16px; right: 16px; }
     }
-  `}var f=!1,u=!1,m=[],l,T;function n(t){return document.getElementById(t)}function $(t,e){l=t,T=e;let o=document.createElement("style");o.textContent=B(l.brandColor),document.head.appendChild(o);let i=document.createElement("div");i.id="cb-container",i.innerHTML=`
+  `}var g=!1,p=!1,f=[],l,C;function n(e){return document.getElementById(e)}function M(e,t){l=e,C=t;let o=document.createElement("style");o.textContent=E(l.brandColor),document.head.appendChild(o);let i=document.createElement("div");i.id="cb-container",i.innerHTML=`
     <button id="cb-bubble" aria-label="Open chat" aria-expanded="false">
       <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
         <path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2z"/>
@@ -99,4 +98,4 @@
         <p id="cb-powered">Powered by ChatBot SaaS</p>
       </div>
     </div>
-  `,document.body.appendChild(i),w("assistant",l.welcomeMessage),n("cb-bubble").addEventListener("click",O),n("cb-close-btn").addEventListener("click",H),n("cb-send-btn").addEventListener("click",S),n("cb-input").addEventListener("keydown",s=>{s.key==="Enter"&&!u&&S()})}function O(){f?H():A()}function A(){var t,e;f=!0,(t=n("cb-window"))==null||t.classList.remove("cb-hidden"),(e=n("cb-bubble"))==null||e.setAttribute("aria-expanded","true"),setTimeout(()=>{var o;return(o=n("cb-input"))==null?void 0:o.focus()},250),g()}function H(){var t,e;f=!1,(t=n("cb-window"))==null||t.classList.add("cb-hidden"),(e=n("cb-bubble"))==null||e.setAttribute("aria-expanded","false")}function w(t,e){let o=n("cb-messages"),i=document.createElement("div");return i.className=`cb-msg cb-msg-${t}`,i.textContent=e,o.appendChild(i),g(),i}function g(){let t=n("cb-messages");t&&(t.scrollTop=t.scrollHeight)}function x(t){let e=n("cb-input"),o=n("cb-send-btn");e&&(e.disabled=t),o&&(o.disabled=t)}async function S(){if(u)return;let t=n("cb-input");if(!t)return;let e=t.value.trim();if(!e)return;t.value="",w("user",e);let o={role:"user",content:e},i=m.slice(-10);m.push(o),u=!0,x(!0);let s=w("assistant","");s.classList.add("cb-streaming");let a="";await L(l.id,e,i,T,c=>{a+=c,s.textContent=a,g()},c=>{var b,p;if(s.classList.remove("cb-streaming"),m.push({role:"assistant",content:a}),c.length>0){let r=document.createElement("div");r.className="cb-sources",r.textContent="Sources: "+c.slice(0,3).join(", "),(b=n("cb-messages"))==null||b.appendChild(r),g()}u=!1,x(!1),(p=n("cb-input"))==null||p.focus()},c=>{s.classList.remove("cb-streaming"),s.textContent="Sorry, something went wrong. Please try again.",console.error("[ChatBot] Error:",c),u=!1,x(!1)})}function z(){setTimeout(()=>{f||A()},3e3)}(async function(){let t=document.querySelectorAll("script[data-chatbot-id]"),e=t[t.length-1];if(!e){console.error("[ChatBot] Missing data-chatbot-id attribute on script tag");return}let o=e.getAttribute("data-chatbot-id");if(!o){console.error("[ChatBot] data-chatbot-id is empty");return}let i=e.src,s=i?new URL(i).origin:window.location.origin;try{let a=await M(o,s);if(!a.isReady){console.warn("[ChatBot] Chatbot is not yet ready");return}$(a,s),z()}catch(a){console.error("[ChatBot] Failed to initialize:",a)}})();})();
+  `,document.body.appendChild(i),m("assistant",l.welcomeMessage),n("cb-bubble").addEventListener("click",z),n("cb-close-btn").addEventListener("click",S),n("cb-send-btn").addEventListener("click",k),n("cb-input").addEventListener("keydown",s=>{s.key==="Enter"&&!p&&k()})}function z(){g?S():L()}function L(){var e,t;g=!0,(e=n("cb-window"))==null||e.classList.remove("cb-hidden"),(t=n("cb-bubble"))==null||t.setAttribute("aria-expanded","true"),setTimeout(()=>{var o;return(o=n("cb-input"))==null?void 0:o.focus()},250),u()}function S(){var e,t;g=!1,(e=n("cb-window"))==null||e.classList.add("cb-hidden"),(t=n("cb-bubble"))==null||t.setAttribute("aria-expanded","false")}function m(e,t){let o=n("cb-messages"),i=document.createElement("div");return i.className=`cb-msg cb-msg-${e}`,i.textContent=t,o.appendChild(i),u(),i}function u(){let e=n("cb-messages");e&&(e.scrollTop=e.scrollHeight)}function h(e){let t=n("cb-input"),o=n("cb-send-btn");t&&(t.disabled=e),o&&(o.disabled=e)}async function k(){if(p)return;let e=n("cb-input");if(!e)return;let t=e.value.trim();if(!t)return;e.value="",m("user",t);let o={role:"user",content:t},i=f.slice(-10);f.push(o),p=!0,h(!0);let s=m("assistant","");s.classList.add("cb-streaming");let a="";await v(l.id,t,i,C,c=>{a+=c,s.textContent=a,u()},c=>{var b,r;if(s.classList.remove("cb-streaming"),f.push({role:"assistant",content:a}),c.length>0){let d=document.createElement("div");d.className="cb-sources",d.textContent="Sources: "+c.slice(0,3).join(", "),(b=n("cb-messages"))==null||b.appendChild(d),u()}p=!1,h(!1),(r=n("cb-input"))==null||r.focus()},c=>{s.classList.remove("cb-streaming"),s.textContent="Sorry, something went wrong. Please try again.",console.error("[ChatBot] Error:",c),p=!1,h(!1)})}function B(){setTimeout(()=>{g||L()},3e3)}(async function(){let e=document.querySelectorAll("script[data-chatbot-id]"),t=e[e.length-1];if(!t){console.error("[ChatBot] Missing data-chatbot-id attribute on script tag");return}let o=t.getAttribute("data-chatbot-id");if(!o){console.error("[ChatBot] data-chatbot-id is empty");return}let i=t.src,s=i?new URL(i).origin:window.location.origin;try{let a=await y(o,s);if(!a.isReady){console.warn("[ChatBot] Chatbot is not yet ready");return}M(a,s),B()}catch(a){console.error("[ChatBot] Failed to initialize:",a)}})();})();

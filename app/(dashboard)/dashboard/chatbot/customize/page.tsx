@@ -40,7 +40,7 @@ export default function CustomizePage() {
         const res = await fetch("/api/chatbots");
         if (!res.ok) throw new Error("Failed to load chatbot");
         const data = await res.json();
-        const bot: Chatbot = data.data;
+        const bot: Chatbot = data.chatbot;
         if (bot) {
           setChatbot(bot);
           setForm({

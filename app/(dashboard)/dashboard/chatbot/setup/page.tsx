@@ -20,7 +20,7 @@ interface Chatbot {
   trainingStatus: string;
 }
 
-type Step = "setup" | "training" | "complete";
+type Step = "setup" | "training" | "ready";
 
 export default function ChatbotSetupPage() {
   const [step, setStep] = useState<Step>("setup");
@@ -45,8 +45,8 @@ export default function ChatbotSetupPage() {
         if (!res.ok) return;
         const data = await res.json() as { trainingStatus: string };
         const { trainingStatus } = data;
-        if (trainingStatus === "ready" || trainingStatus === "complete") {
-          setStep("complete");
+        if (trainingStatus === "ready") {
+          setStep("ready");
           clearInterval(interval);
         } else if (trainingStatus === "error") {
           setError("Training failed. Please try again.");
@@ -238,7 +238,7 @@ export default function ChatbotSetupPage() {
     );
   }
 
-  if (step === "complete") {
+  if (step === "ready") {
     return (
       <div className="max-w-3xl mx-auto px-4 py-8 md:py-12">
         <Card hover={false} className="text-center py-16">
@@ -251,7 +251,7 @@ export default function ChatbotSetupPage() {
                 Your chatbot is ready!
               </h2>
               <p className="font-sans text-[#8C9A84] text-base max-w-sm mx-auto">
-                Training is complete. You can now customize your chatbot&apos;s appearance and embed it on your website.
+                Training is ready. You can now customize your chatbot&apos;s appearance and embed it on your website.
               </p>
             </div>
             <div className="flex flex-col sm:flex-row gap-3">

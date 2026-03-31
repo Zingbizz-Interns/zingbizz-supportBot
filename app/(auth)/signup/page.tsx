@@ -6,6 +6,7 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
+import { OAuthButtons } from "@/components/ui/oauth-buttons";
 
 export default function SignupPage() {
   const [email, setEmail] = useState("");
@@ -61,7 +62,13 @@ export default function SignupPage() {
         </p>
       </div>
 
-      <form onSubmit={handleSubmit} noValidate className="flex flex-col gap-5">
+      <OAuthButtons />
+
+      <form
+        onSubmit={handleSubmit}
+        noValidate
+        className="flex flex-col gap-5 mt-5"
+      >
         <Input
           label="Email"
           type="email"

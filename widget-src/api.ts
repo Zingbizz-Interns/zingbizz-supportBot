@@ -26,36 +26,20 @@ export async function sendMessage(
       throw new Error(`Chat request failed: ${res.status}`);
     }
 
+    // Sources are in the response header — read before consuming body
+    const sourcesHeader = res.headers.get("X-Sources");
+    const sources: string[] = sourcesHeader ? (JSON.parse(sourcesHeader) as string[]) : [];
+
     const reader = res.body?.getReader();
     if (!reader) throw new Error("No response body");
 
     const decoder = new TextDecoder();
-    let buffer = "";
-    const sources: string[] = [];
 
     while (true) {
       const { done, value } = await reader.read();
       if (done) break;
-
-      buffer += decoder.decode(value, { stream: true });
-      const lines = buffer.split("\n");
-      buffer = lines.pop() ?? "";
-
-      for (const line of lines) {
-        if (!line.startsWith("data: ")) continue;
-        const data = line.slice(6).trim();
-        if (data === "[DONE]") continue;
-        try {
-          const parsed = JSON.parse(data);
-          if (parsed.type === "text" && parsed.text) {
-            onToken(parsed.text);
-          } else if (parsed.type === "finish" && parsed.sources) {
-            sources.push(...parsed.sources);
-          }
-        } catch {
-          // ignore parse errors on partial chunks
-        }
-      }
+      const chunk = decoder.decode(value, { stream: true });
+      if (chunk) onToken(chunk);
     }
 
     onDone(sources);

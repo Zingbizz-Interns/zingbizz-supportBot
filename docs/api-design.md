@@ -36,17 +36,17 @@ Content-Type: application/json
 }
 ```
 
-**Response** (streaming — Vercel AI SDK):
+**Response** (streaming — plain text):
 ```
-Content-Type: text/event-stream
+Content-Type: text/plain; charset=utf-8
+X-Sources: ["https://example.com/about","https://example.com/pricing"]
 
-data: {"type":"text","text":"Hello"}
-data: {"type":"text","text":" how"}
-...
-data: {"type":"finish","sources":["https://example.com/about","https://example.com/pricing"]}
+Hello how can I help...
 ```
 
-**Sources**: Deduplicated list of URLs/titles from the retrieved document metadata.
+The response body is a plain text stream — read chunks directly, no SSE framing.
+
+**Sources**: Sent in the `X-Sources` response header as a JSON-encoded array of strings. Read the header before consuming the body stream. Empty array if no sources or fallback path taken.
 
 **Fallback**: If top similarity score < 0.75, return `chatbot.fallbackMessage` without calling the LLM.
 
@@ -109,7 +109,7 @@ Triggers the ingestion pipeline for a chatbot.
 {
   chatbotId: string,
   pages:     Array<{ url: string, content: string, title: string }>,   // from scrape
-  fileKeys:  string[]   // Vercel Blob keys for uploaded files
+  fileKeys:  string[]   // Vercel Blob URLs for uploaded files
 }
 ```
 
@@ -119,13 +119,12 @@ Triggers the ingestion pipeline for a chatbot.
 ```
 
 **Behavior**:
-1. Sets `training_status = 'training'`
-2. Phase 1: Processes first page immediately → sets status to `'ready'`
-3. Phase 2: Processes remaining pages + files in background
-4. On completion: updates status to `'complete'`
-5. On error: sets status to `'error'`
+1. Sets `training_status = 'training'` immediately
+2. Fire-and-forget: fetches each Blob URL, parses content, chunks + embeds all pages and files
+3. On completion: sets status to `'ready'`
+4. On error: sets status to `'error'`
 
-Phase 2 runs as a background async task (fire-and-forget). On Vercel, use `waitUntil()` from `@vercel/functions` to keep the background task alive after response.
+The pipeline runs as a fire-and-forget async task. Poll `GET /api/chatbots/[id]/status` every 3s until status is `'ready'` or `'error'`.
 
 ---
 
@@ -142,7 +141,7 @@ Uploads a PDF or text file to Vercel Blob.
 **Response**:
 ```typescript
 {
-  key:      string,   // Vercel Blob key (used in /api/train)
+  key:      string,   // Vercel Blob URL (full https URL — pass as fileKeys in /api/train)
   filename: string,
   size:     number
 }
@@ -243,12 +242,12 @@ Returns the list of ingested pages/documents.
 ```typescript
 {
   sources: Array<{
-    id:          string,
     url?:        string,
-    title:       string,
-    sourceType:  'scrape' | 'upload',
-    chunkCount:  number,
-    createdAt:   string
+    title:       string | null,
+    source_type: 'scrape' | 'upload',
+    file_name?:  string | null,
+    chunk_count: number,
+    created_at:  string | null
   }>
 }
 ```

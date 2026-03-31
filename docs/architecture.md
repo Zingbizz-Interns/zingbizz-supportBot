@@ -31,7 +31,7 @@
 │          data-chatbot-id="abc123">                     │
 │                                                         │
 │  ┌──────────────────────────────────┐                  │
-│  │  Chat Widget (injected iframe)   │                  │
+│  │  Chat Widget (injected DOM)   │                  │
 │  │  → Floating bubble (brand color) │                  │
 │  │  → Chat window                   │                  │
 │  │  → Calls POST /api/chat          │                  │
@@ -46,20 +46,16 @@
 ### Ingestion (runs when user clicks "Train")
 
 ```
-Phase 1 — Instant Preview (fast, ~10–20s):
-  1. Scrape homepage only (Cheerio + node-fetch)
-  2. Clean HTML → plain text
-  3. Chunk text (500–1000 tokens, with 100-token overlap)
-  4. Generate embeddings (OpenAI text-embedding-3-small, 1536 dims)
-  5. Store chunks + embeddings in Neon (pgvector)
-  6. Set chatbot training_status = "ready" for preview
-
-Phase 2 — Full Training (background, async):
-  1. Scrape internal links (max 5–10 pages)
-  2. Process any uploaded PDF/text files
-  3. Chunk + embed all content
-  4. Upsert into Neon
-  5. Set training_status = "complete"
+Single pipeline (fire-and-forget after response):
+  1. Scrape all selected pages (Cheerio + node-fetch, max 10)
+  2. Fetch uploaded files from Vercel Blob URLs
+  3. Parse PDFs / plain text
+  4. Clean HTML → plain text
+  5. Chunk text (~3000 chars, 400-char overlap, sentence-boundary aware)
+  6. Generate embeddings (OpenAI text-embedding-3-small, 1536 dims)
+  7. Store chunks + embeddings in Neon (pgvector)
+  8. Set chatbot training_status = "ready"
+  9. On any error: set training_status = "error"
 ```
 
 ### Query (runs on every chat message)
@@ -124,9 +120,9 @@ idle ──► training ──► ready
 ```
 
 - `idle`: no training run yet
-- `training`: ingestion pipeline running (Phase 1 or 2)
-- `ready`: at least Phase 1 complete, chatbot can answer questions
-- `error`: ingestion failed
+- `training`: ingestion pipeline running
+- `ready`: all pages and files processed, chatbot can answer questions
+- `error`: ingestion failed — user can retry
 
 Dashboard polls `GET /api/chatbots/{id}/status` every 3 seconds while `training`.
 

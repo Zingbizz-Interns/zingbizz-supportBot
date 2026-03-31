@@ -3,7 +3,9 @@ import { getChatbotById, updateChatbot } from "@/lib/db/queries/chatbots";
 import {
   runIngestionPipeline,
   type IngestionPage,
+  type IngestionFile,
 } from "@/lib/ingestion/pipeline";
+import { extractTextFromPdf, extractTextFromPlainText } from "@/lib/ingestion/pdf-parser";
 
 interface TrainRequestBody {
   chatbotId: string;
@@ -54,11 +56,35 @@ export async function POST(request: Request) {
   // Set status to training immediately
   await updateChatbot(chatbotId, { trainingStatus: "training" });
 
-  // Fire-and-forget: run pipeline without blocking the response
-  // fileKeys are Vercel Blob URLs — we include them as file references in the pipeline
-  // For now, pages are processed as scrape content; fileKeys as file uploads
-  // The pipeline handles file content via IngestionFile interface
-  runIngestionPipeline(chatbotId, pages, []).catch((err) => {
+  // Fire-and-forget: fetch file content from Vercel Blob URLs, then run pipeline
+  const runPipeline = async () => {
+    const ingestionFiles: IngestionFile[] = [];
+
+    for (const blobUrl of fileKeys) {
+      try {
+        // SSRF guard: only fetch from Vercel Blob storage
+        const parsed = new URL(blobUrl);
+        if (parsed.protocol !== "https:" || !parsed.hostname.endsWith(".vercel-storage.com")) {
+          console.warn("[train] Rejected non-Blob URL:", parsed.hostname);
+          continue;
+        }
+        const fileRes = await fetch(blobUrl);
+        if (!fileRes.ok) continue;
+        const buffer = Buffer.from(await fileRes.arrayBuffer());
+        const fileName = new URL(blobUrl).pathname.split("/").pop() ?? "file";
+        const content = fileName.toLowerCase().endsWith(".pdf")
+          ? await extractTextFromPdf(buffer)
+          : await extractTextFromPlainText(buffer);
+        if (content.trim()) ingestionFiles.push({ fileName, content });
+      } catch {
+        // skip files that fail to fetch or parse
+      }
+    }
+
+    await runIngestionPipeline(chatbotId, pages, ingestionFiles);
+  };
+
+  runPipeline().catch((err) => {
     console.error("[train] Pipeline error:", err);
   });
 

@@ -47,7 +47,12 @@
       "Bash(ls \"D:/Developer/zingBizz/chat-bot/app/\\(dashboard\\)/dashboard/insights/\")",
       "Bash(ls \"D:/Developer/zingBizz/chat-bot/app/\\(dashboard\\)/dashboard/chatbot/customize/\")",
       "Bash(ls \"D:/Developer/zingBizz/chat-bot/app/\\(dashboard\\)/dashboard/chatbot/sources/\")",
-      "Bash(ls \"D:/Developer/zingBizz/chat-bot/app/\\(dashboard\\)/dashboard/chatbot/embed/\")"
+      "Bash(ls \"D:/Developer/zingBizz/chat-bot/app/\\(dashboard\\)/dashboard/chatbot/embed/\")",
+      "Bash(cat \"D:/Developer/zingBizz/chat-bot/app/\\(dashboard\\)/dashboard/chatbot/customize/page.tsx\")",
+      "Bash(cat \"D:/Developer/zingBizz/chat-bot/app/\\(dashboard\\)/dashboard/chatbot/sources/page.tsx\")",
+      "Bash(cat \"D:/Developer/zingBizz/chat-bot/app/\\(dashboard\\)/dashboard/insights/page.tsx\")",
+      "Bash(cat \"D:/Developer/zingBizz/chat-bot/app/\\(dashboard\\)/dashboard/chatbot/embed/page.tsx\")",
+      "Bash(rm:*)"
     ]
   }
 }
