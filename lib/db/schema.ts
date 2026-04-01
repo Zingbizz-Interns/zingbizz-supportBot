@@ -10,11 +10,12 @@ import {
   customType,
 } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
+import { EMBEDDING_DIMENSIONS } from "@/lib/config/embedding";
 
-// Custom pgvector type for 1536-dimensional embeddings
+// Custom pgvector type for configurable-dimensional embeddings
 const vector = customType<{ data: number[]; driverData: string }>({
   dataType() {
-    return "vector(1536)";
+    return `vector(${EMBEDDING_DIMENSIONS})`;
   },
   toDriver(value: number[]): string {
     return `[${value.join(",")}]`;

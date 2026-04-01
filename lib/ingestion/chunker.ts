@@ -1,44 +1,35 @@
+import { RecursiveCharacterTextSplitter } from "@langchain/textsplitters";
+
 export interface TextChunk {
   content: string;
   index: number;
 }
 
-const CHUNK_SIZE = 3000;   // ~750 tokens at ~4 chars/token
-const CHUNK_OVERLAP = 400; // ~100 tokens overlap
+const CHUNK_SIZE = 3000;
+const CHUNK_OVERLAP = 400;
+const MIN_CHUNK_LENGTH = 50;
 
-export function chunkText(text: string): TextChunk[] {
+const splitter = new RecursiveCharacterTextSplitter({
+  chunkSize: CHUNK_SIZE,
+  chunkOverlap: CHUNK_OVERLAP,
+  separators: ["\n\n", "\n", ". ", " ", ""],
+});
+
+export async function chunkText(text: string): Promise<TextChunk[]> {
   if (!text || text.trim().length === 0) return [];
 
-  const chunks: TextChunk[] = [];
-  let start = 0;
-  let index = 0;
+  const normalizedText = text
+    .replace(/\t/g, " ")
+    .replace(/[ ]{2,}/g, " ")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
 
-  while (start < text.length) {
-    const end = Math.min(start + CHUNK_SIZE, text.length);
-    let chunkEnd = end;
+  if (!normalizedText) return [];
 
-    // Try to break at a sentence boundary (. or \n) within the last 20% of the chunk
-    if (end < text.length) {
-      const searchStart = start + Math.floor(CHUNK_SIZE * 0.8);
-      const sentenceEnd = text.lastIndexOf("\n", end);
-      const periodEnd = text.lastIndexOf(". ", end);
+  const rawChunks: string[] = await splitter.splitText(normalizedText);
 
-      const breakPoint = Math.max(sentenceEnd, periodEnd);
-      if (breakPoint > searchStart) {
-        chunkEnd = breakPoint + 1;
-      }
-    }
-
-    const chunk = text.slice(start, chunkEnd).trim();
-    if (chunk.length > 50) {
-      chunks.push({ content: chunk, index });
-      index++;
-    }
-
-    // Move forward with overlap
-    start = chunkEnd - CHUNK_OVERLAP;
-    if (start <= 0 || start >= text.length) break;
-  }
-
-  return chunks;
+  return rawChunks
+    .map((chunk: string) => chunk.trim())
+    .filter((chunk: string) => chunk.length >= MIN_CHUNK_LENGTH)
+    .map((content: string, index: number) => ({ content, index }));
 }

@@ -45,7 +45,7 @@ export default function InsightsPage() {
   useEffect(() => {
     async function fetchData() {
       try {
-        const chatbotRes = await fetch("/api/chatbots");
+        const chatbotRes = await fetch("/api/agents");
         if (!chatbotRes.ok) throw new Error("Failed to load chatbot");
         const chatbotData = await chatbotRes.json();
         const bot = chatbotData.chatbot;
@@ -54,7 +54,7 @@ export default function InsightsPage() {
           return;
         }
 
-        const insightsRes = await fetch(`/api/chatbots/${bot.id}/insights`);
+        const insightsRes = await fetch(`/api/agents/${bot.id}/insights`);
         if (!insightsRes.ok) throw new Error("Failed to load insights");
         const insightsData = await insightsRes.json();
         setInsights(insightsData);

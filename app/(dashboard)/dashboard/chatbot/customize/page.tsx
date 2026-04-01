@@ -37,7 +37,7 @@ export default function CustomizePage() {
   useEffect(() => {
     async function fetchChatbot() {
       try {
-        const res = await fetch("/api/chatbots");
+        const res = await fetch("/api/agents");
         if (!res.ok) throw new Error("Failed to load chatbot");
         const data = await res.json();
         const bot: Chatbot = data.chatbot;
@@ -69,7 +69,7 @@ export default function CustomizePage() {
     setError(null);
     setSuccessMsg(null);
     try {
-      const res = await fetch(`/api/chatbots/${chatbot.id}`, {
+      const res = await fetch(`/api/agents/${chatbot.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(form),

@@ -85,7 +85,7 @@ export async function POST(request: Request) {
     });
 
     // Fallback path: return the message directly without calling the LLM
-    if (!result.answered || result.stream === null) {
+    if (!result.stream) {
       return new Response(result.fallbackText ?? "", {
         status: 200,
         headers: { ...CORS_HEADERS, "Content-Type": "text/plain; charset=utf-8" },

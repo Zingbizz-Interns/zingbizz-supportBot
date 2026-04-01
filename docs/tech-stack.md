@@ -1,90 +1,107 @@
 # Tech Stack
 
-## Final Decisions
+## Runtime Stack
 
-| Layer | Technology | Version | Why |
-|-------|-----------|---------|-----|
-| Framework | Next.js | 16 (App Router) | Full-stack, serverless-ready, Vercel-native |
-| Auth | NextAuth.js (Auth.js) | v5 | Credentials provider, JWT sessions, extensible to OAuth |
-| Database | Neon | latest | Serverless Postgres + pgvector, generous free tier |
-| ORM | Drizzle ORM | latest | Type-safe, lightweight, pgvector support, works with Neon |
-| LLM | xAI Grok | grok-2 | OpenAI-compatible API, good reasoning, competitive cost |
-| AI SDK | Vercel AI SDK | latest | `streamText()`, `useChat()` hook, provider-agnostic |
-| Embeddings | OpenAI | text-embedding-3-small | 1536 dims, cheap (~$0.02/1M tokens), fast |
-| Scraping | Cheerio + node-fetch | latest | Lightweight (~50KB), serverless-compatible, sufficient for static HTML |
-| File Storage | Vercel Blob | latest | Zero-config with Vercel, handles PDF/text uploads |
-| Rate Limiting | Upstash Redis | latest | Serverless Redis, per-chatbot rate limiting on `/api/chat` |
-| Styling | Tailwind CSS | v4 | Utility-first, matches design system tokens |
-| Icons | Lucide React | latest | Thin stroke (1.5px), consistent with design system |
-| Fonts | Google Fonts | — | Playfair Display + Source Sans 3 |
-| Widget Build | esbuild | latest | Single-file widget.js, minimal bundle size target ~20KB |
-| Deployment | Vercel | — | Zero-config Next.js, edge functions, Blob storage |
+| Layer | Technology | Version in repo | Notes |
+|-------|------------|-----------------|-------|
+| App framework | Next.js | `16.2.1` | App Router project with route handlers |
+| UI runtime | React | `19.2.4` | Paired with `react-dom 19.2.4` |
+| Auth | Auth.js / NextAuth | `5.0.0-beta.30` | JWT sessions with credentials and optional OAuth |
+| ORM | Drizzle ORM | `0.45.2` | Uses Neon HTTP driver |
+| Database | Neon serverless Postgres | package `@neondatabase/serverless 1.0.2` | Stores users, chatbots, chunks, and insights |
+| Vector search | pgvector | database extension | Custom Drizzle vector type keyed off env dimensions |
+| AI SDK | Vercel AI SDK | `6.0.141` | Used for embeddings and streamed text generation |
+| Embeddings | Cohere | package `@ai-sdk/cohere 3.0.27` | `embed-v4.0` for query and document vectors |
+| Production chat model | xAI | package `@ai-sdk/xai 3.0.74` | `grok-2-1212` |
+| Test chat model | NVIDIA NIM | `@ai-sdk/openai-compatible 2.0.37` | Enabled through `AI_PROVIDER_MODE=test` |
+| Storage | Vercel Blob | `2.3.2` | Private file uploads resolved through `head()` |
+| Rate limiting | Upstash Redis + Ratelimit | `1.37.0` / `2.0.8` | Sliding window for `/api/chat` |
+| Scraping | Cheerio + built-in fetch | `1.2.0` | HTML-only site scraping |
+| PDF parsing | pdf-parse | `2.4.5` | Uses the v2 `PDFParse` class API |
+| Chunking | LangChain text splitters | `0.1.0` | Recursive character splitter |
+| Styling | Tailwind CSS | `4.2.2` | Tailwind v4 via `@tailwindcss/postcss` |
+| Motion | Framer Motion | `12.38.0` | Used in UI layer |
+| Widget bundling | esbuild | `0.27.4` | Bundles `widget-src/` into `public/widget.js` |
 
-## Key Packages
-
-```json
-{
-  "dependencies": {
-    "next": "^15.0.0",
-    "react": "^19.0.0",
-    "next-auth": "^5.0.0",
-    "drizzle-orm": "latest",
-    "@neondatabase/serverless": "latest",
-    "ai": "latest",
-    "@ai-sdk/xai": "latest",
-    "@ai-sdk/openai": "latest",
-    "@vercel/blob": "latest",
-    "@upstash/redis": "latest",
-    "@upstash/ratelimit": "latest",
-    "cheerio": "latest",
-    "lucide-react": "latest",
-    "pdf-parse": "latest"
-  },
-  "devDependencies": {
-    "drizzle-kit": "latest",
-    "esbuild": "latest",
-    "tailwindcss": "^4.0.0",
-    "@types/node": "latest",
-    "typescript": "^5.0.0"
-  }
-}
-```
-
-## Environment Variables Required
+## Primary Scripts
 
 ```bash
-# Database
-DATABASE_URL=                    # Neon connection string (pooled)
-DATABASE_URL_UNPOOLED=           # Neon direct connection (for migrations)
-
-# Auth
-AUTH_SECRET=                     # NextAuth secret (32+ chars)
-
-# AI
-OPENAI_API_KEY=                  # OpenAI — for embeddings only
-XAI_API_KEY=                     # xAI Grok — for LLM responses
-
-# Storage
-BLOB_READ_WRITE_TOKEN=           # Vercel Blob
-
-# Rate Limiting
-UPSTASH_REDIS_REST_URL=
-UPSTASH_REDIS_REST_TOKEN=
+npm run dev
+npm run build
+npm run start
+npm run lint
+npm run db:generate
+npm run db:migrate
+npm run db:studio
+npm run db:push
+npm run build:widget
 ```
 
-## Architecture Decisions
+## Environment Requirements
 
-### Why Cheerio over Playwright for scraping?
-Playwright is ~100MB and has a long cold-start time on serverless. For MVP, most small business sites are static HTML. Use Cheerio + node-fetch as default; add a Playwright fallback only if a URL returns empty content (indicates JS-rendered page).
+### Required for normal app usage
 
-### Why Drizzle over Prisma?
-Drizzle has native pgvector support, generates lighter queries, and has zero-overhead on edge/serverless. Prisma's query engine is heavy for Vercel Edge Functions.
+```bash
+DATABASE_URL=
+AUTH_SECRET=
+BLOB_READ_WRITE_TOKEN=
+UPSTASH_REDIS_REST_URL=
+UPSTASH_REDIS_REST_TOKEN=
+COHERE_API_KEY=
+XAI_API_KEY=
+```
 
-### Why Vercel AI SDK over raw OpenAI SDK?
-The Vercel AI SDK provides `streamText()` and the `useChat()` React hook, which handles streaming, loading states, and message history automatically. Switching LLM providers (Grok → GPT-4o → Claude) is a 1-line config change.
+### Required for migration workflows
 
-### Why NOT Playwright in production?
-On Vercel serverless, binaries like Chromium have a max 250MB limit. Cheerio avoids this entirely. If JS-rendered scraping is needed later, use a headless browser API service (e.g., Browserbase, ScrapingBee).
+```bash
+DATABASE_URL_UNPOOLED=
+```
 
-### Why NOT store full files in Postgres?
-Raw PDF/text files can be hundreds of MB. Store only extracted text chunks + their embeddings in Postgres. Archive original files in Vercel Blob (cheap object storage).
+If `DATABASE_URL_UNPOOLED` is not set, `drizzle.config.ts` attempts to derive a direct Neon host from `DATABASE_URL`.
+
+### Optional auth providers
+
+```bash
+GOOGLE_CLIENT_ID=
+GOOGLE_CLIENT_SECRET=
+GITHUB_ID=
+GITHUB_SECRET=
+```
+
+### Optional test-mode chat provider
+
+```bash
+AI_PROVIDER_MODE=test
+NVIDIA_NIM_BASE_URL=
+NVIDIA_NIM_API_KEY=
+NVIDIA_NIM_CHAT_MODEL=
+```
+
+### Optional embedding config
+
+```bash
+EMBEDDING_DIMENSIONS=1536
+```
+
+## Implementation Notes
+
+### AI provider split
+
+- Embeddings and chat generation are configured independently
+- Embeddings currently come from Cohere
+- Chat generation uses xAI in production and NVIDIA NIM in test mode
+
+### Scraping tradeoff
+
+- The scraper intentionally targets static HTML and same-domain links
+- It avoids heavier browser automation and skips non-HTML pages
+
+### Widget deployment
+
+- The embeddable widget is a plain browser script, not a React bundle
+- Any changes under `widget-src/` should be followed by `npm run build:widget`
+
+### Training runtime model
+
+- `/api/train` launches work asynchronously inside the app process
+- There is no queue worker, cron reconciliation job, or separate job table yet

@@ -1,130 +1,168 @@
 # Database Schema
 
-**Database**: Neon (Serverless Postgres + pgvector)
-**ORM**: Drizzle ORM
+Database: Neon Postgres with `pgvector`  
+ORM: Drizzle ORM
 
 ## Tables
 
 ### `users`
 
-```typescript
-export const users = pgTable('users', {
-  id:           uuid('id').primaryKey().defaultRandom(),
-  email:        text('email').notNull().unique(),
-  passwordHash: text('password_hash').notNull(),
-  createdAt:    timestamp('created_at').defaultNow().notNull(),
-})
-```
+Stores login identities.
 
-### `chatbots`
-
-```typescript
-export const chatbots = pgTable('chatbots', {
-  id:              uuid('id').primaryKey().defaultRandom(),
-  userId:          uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
-  name:            text('name').notNull().default('Support Bot'),
-  welcomeMessage:  text('welcome_message').notNull().default('Hi! How can I help you today?'),
-  fallbackMessage: text('fallback_message').notNull().default("I'm not sure about that. Please contact support."),
-  brandColor:      text('brand_color').notNull().default('#2D3A31'),   // hex value
-  trainingStatus:  text('training_status').notNull().default('idle'),  // idle | training | ready | error
-  createdAt:       timestamp('created_at').defaultNow().notNull(),
-  updatedAt:       timestamp('updated_at').defaultNow().notNull(),
-})
-```
-
-**Constraint**: One chatbot per user enforced at application layer (MVP). Architecture supports multi-chatbot via `userId` FK.
-
-### `documents`
-
-```typescript
-export const documents = pgTable('documents', {
-  id:        uuid('id').primaryKey().defaultRandom(),
-  chatbotId: uuid('chatbot_id').notNull().references(() => chatbots.id, { onDelete: 'cascade' }),
-  content:   text('content').notNull(),            // raw text chunk
-  metadata:  jsonb('metadata').notNull(),           // { url, title, source_type }
-  embedding: vector('embedding', { dimensions: 1536 }).notNull(),
-  createdAt: timestamp('created_at').defaultNow().notNull(),
-})
-
-// Index for fast vector search per chatbot
-export const documentsEmbeddingIndex = index('documents_embedding_idx')
-  .on(documents.embedding)
-  .using('hnsw')   // HNSW index for fast ANN search
-```
-
-**Metadata shape**:
-```typescript
-type DocumentMetadata = {
-  url?: string           // source page URL (for web scrapes)
-  title?: string         // page title or filename
-  source_type: 'scrape' | 'upload'
-  file_name?: string     // original filename (for uploads)
+```ts
+users = {
+  id: uuid primary key,
+  email: text unique not null,
+  passwordHash: text nullable,
+  createdAt: timestamp not null
 }
 ```
 
-**Embedding model**: `text-embedding-3-small` → 1536 dimensions
+Notes:
+
+- `passwordHash` is nullable so OAuth-only users can exist without credentials
+
+### `accounts`
+
+Stores linked OAuth provider identities.
+
+```ts
+accounts = {
+  id: uuid primary key,
+  userId: uuid references users.id on delete cascade,
+  provider: text not null,
+  providerAccountId: text not null,
+  createdAt: timestamp not null
+}
+```
+
+Constraint:
+
+- Unique index on `(provider, providerAccountId)`
+
+### `chatbots`
+
+One chatbot per user is enforced in application logic.
+
+```ts
+chatbots = {
+  id: uuid primary key,
+  userId: uuid references users.id on delete cascade,
+  name: text default "Support Bot",
+  welcomeMessage: text default "Hi! How can I help you today?",
+  fallbackMessage: text default "I'm not sure about that. Please contact support for assistance.",
+  brandColor: text default "#2D3A31",
+  trainingStatus: text default "idle",
+  createdAt: timestamp not null,
+  updatedAt: timestamp not null
+}
+```
+
+Training states:
+
+- `idle`
+- `training`
+- `ready`
+- `error`
+
+### `documents`
+
+Stores chunked source material plus embeddings.
+
+```ts
+documents = {
+  id: uuid primary key,
+  chatbotId: uuid references chatbots.id on delete cascade,
+  content: text not null,
+  metadata: jsonb not null,
+  embedding: vector(EMBEDDING_DIMENSIONS) not null,
+  createdAt: timestamp not null
+}
+```
+
+Metadata shape:
+
+```ts
+type DocumentMetadata = {
+  url?: string;
+  title?: string;
+  source_type: "scrape" | "upload";
+  file_name?: string;
+};
+```
+
+Current indexing:
+
+- B-tree index on `chatbot_id`
+- No ANN vector index is currently defined in the live Drizzle schema
 
 ### `queries`
 
-```typescript
-export const queries = pgTable('queries', {
-  id:        uuid('id').primaryKey().defaultRandom(),
-  chatbotId: uuid('chatbot_id').notNull().references(() => chatbots.id, { onDelete: 'cascade' }),
-  question:  text('question').notNull(),
-  answered:  boolean('answered').notNull().default(false),
-  createdAt: timestamp('created_at').defaultNow().notNull(),
-})
+Stores lightweight analytics.
+
+```ts
+queries = {
+  id: uuid primary key,
+  chatbotId: uuid references chatbots.id on delete cascade,
+  question: text not null,
+  answered: boolean default false,
+  createdAt: timestamp not null
+}
 ```
 
-`answered = false` when top similarity score < 0.75 (triggered fallback message).
+Meaning of `answered`:
 
----
+- `true` when the top retrieval similarity meets the threshold
+- `false` when retrieval is below threshold, even though the chat model may still answer greetings
 
-## Vector Search Query
+## Vector Search
+
+Search is implemented with raw SQL in `lib/db/queries/documents.ts`.
 
 ```sql
 SELECT
   content,
   metadata,
-  1 - (embedding <=> $1::vector) AS similarity_score
+  1 - (embedding <=> $embedding::vector) AS similarity
 FROM documents
-WHERE chatbot_id = $2
-ORDER BY embedding <=> $1::vector
+WHERE chatbot_id = $chatbotId
+ORDER BY embedding <=> $embedding::vector
 LIMIT 5;
 ```
 
-- `<=>` = cosine distance operator (pgvector)
-- `1 - cosine_distance` = cosine similarity (0 to 1, higher = more similar)
-- Threshold: similarity_score < 0.75 → trigger fallback
+Behavior:
 
----
+- Uses pgvector cosine distance
+- Converts distance to similarity with `1 - distance`
+- Uses a `0.75` threshold in `lib/ai/rag.ts`
 
-## Drizzle Migration Setup
+## Embedding Dimensions
 
-```typescript
-// drizzle.config.ts
-export default {
-  schema: './lib/db/schema.ts',
-  out: './drizzle/migrations',
-  dialect: 'postgresql',
-  dbCredentials: {
-    url: process.env.DATABASE_URL_UNPOOLED!,
-  },
-}
-```
+The vector type is generated from `EMBEDDING_DIMENSIONS` in `lib/config/embedding.ts`.
 
-Run migrations:
+- Default dimension: `1536`
+- The current migration history includes:
+  - initial `1536`
+  - a temporary move to `2560`
+  - a reset back to `1536` in `0003_embedding_dimension_1536.sql`
+
+Because Postgres vector dimensions cannot be safely cast across arbitrary sizes, the reset migration truncates `documents` before changing the type.
+
+## Relationships
+
+- `users` -> many `chatbots`
+- `users` -> many `accounts`
+- `chatbots` -> many `documents`
+- `chatbots` -> many `queries`
+
+## Migration Notes
+
+`drizzle.config.ts` prefers `DATABASE_URL_UNPOOLED`, but can derive a direct host from a pooled Neon URL when necessary.
+
+Common commands:
+
 ```bash
-npx drizzle-kit generate   # generate SQL migration
-npx drizzle-kit migrate    # apply to Neon
+npm run db:generate
+npm run db:migrate
+npm run db:studio
 ```
-
-## pgvector Setup
-
-The `vector` extension must be enabled in Neon before running migrations:
-
-```sql
-CREATE EXTENSION IF NOT EXISTS vector;
-```
-
-This is typically pre-enabled on Neon. Verify in the Neon console SQL editor.

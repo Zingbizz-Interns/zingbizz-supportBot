@@ -41,7 +41,7 @@ export default function SourcesPage() {
   useEffect(() => {
     async function fetchData() {
       try {
-        const chatbotRes = await fetch("/api/chatbots");
+        const chatbotRes = await fetch("/api/agents");
         if (!chatbotRes.ok) throw new Error("Failed to load chatbot");
         const chatbotData = await chatbotRes.json();
         const bot = chatbotData.chatbot;
@@ -51,7 +51,7 @@ export default function SourcesPage() {
         }
         setChatbotId(bot.id);
 
-        const sourcesRes = await fetch(`/api/chatbots/${bot.id}/sources`);
+        const sourcesRes = await fetch(`/api/agents/${bot.id}/sources`);
         if (!sourcesRes.ok) throw new Error("Failed to load sources");
         const sourcesData = await sourcesRes.json();
         setSources(sourcesData.sources ?? []);
@@ -70,7 +70,7 @@ export default function SourcesPage() {
     setDeletingKey(key);
     try {
       const res = await fetch(
-        `/api/chatbots/${chatbotId}/sources/${encodeURIComponent(key)}`,
+        `/api/agents/${chatbotId}/sources/${encodeURIComponent(key)}`,
         { method: "DELETE" }
       );
       if (!res.ok) {

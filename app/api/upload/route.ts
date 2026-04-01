@@ -64,7 +64,7 @@ export async function POST(request: Request) {
       `uploads/${session.user.id}/${Date.now()}-${file.name}`,
       file,
       {
-        access: "public",
+        access: "private",
         contentType: mimeType,
       }
     );

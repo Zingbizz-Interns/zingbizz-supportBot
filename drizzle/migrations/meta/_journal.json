@@ -15,6 +15,20 @@
       "when": 1774938375602,
       "tag": "0001_known_victor_mancha",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1774965000000,
+      "tag": "0002_embedding_dimension_2560",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1774966000000,
+      "tag": "0003_embedding_dimension_1536",
+      "breakpoints": true
     }
   ]
 }

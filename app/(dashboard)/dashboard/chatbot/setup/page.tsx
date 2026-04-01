@@ -21,6 +21,7 @@ interface Chatbot {
 }
 
 type Step = "setup" | "training" | "ready";
+const MAX_STATUS_FAILURES = 3;
 
 export default function ChatbotSetupPage() {
   const [step, setStep] = useState<Step>("setup");
@@ -34,55 +35,101 @@ export default function ChatbotSetupPage() {
   const [chatbot, setChatbot] = useState<Chatbot | null>(null);
   const [error, setError] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const pollFailureCountRef = useRef(0);
 
   // Fetch existing chatbot on mount so we don't try to duplicate it
   useEffect(() => {
+    let cancelled = false;
+
     async function fetchChatbot() {
       try {
-        const res = await fetch("/api/chatbots");
-        if (res.ok) {
-          const data = await res.json() as { chatbot: Chatbot | null };
-          if (data.chatbot) {
-            setChatbot(data.chatbot);
-            // If it's already training when we load, jump to training step
-            if (data.chatbot.trainingStatus === "training" && step === "setup") {
-              setStep("training");
-            } else if (data.chatbot.trainingStatus === "ready" && step === "training") {
-              setStep("ready");
-            }
-          }
+        const res = await fetch("/api/agents");
+        if (!res.ok || cancelled) return;
+
+        const data = await res.json() as { chatbot: Chatbot | null };
+        if (!data.chatbot || cancelled) return;
+
+        setChatbot(data.chatbot);
+
+        if (data.chatbot.trainingStatus === "training") {
+          setStep("training");
+        } else if (data.chatbot.trainingStatus === "ready") {
+          setStep("ready");
         }
       } catch (err) {
         console.error("Failed to fetch chatbot", err);
       }
     }
+
     fetchChatbot();
-  }, [step]);
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   // Poll training status
   useEffect(() => {
     if (step !== "training" || !chatbot?.id) return;
 
-    const interval = setInterval(async () => {
+    pollFailureCountRef.current = 0;
+
+    let cancelled = false;
+    let timeoutId: ReturnType<typeof setTimeout> | null = null;
+    let controller: AbortController | null = null;
+
+    const pollStatus = async () => {
+      controller?.abort();
+      controller = new AbortController();
+
       try {
-        const res = await fetch(`/api/chatbots/${chatbot.id}/status`);
-        if (!res.ok) return;
+        const res = await fetch(`/api/agents/${chatbot.id}/status`, {
+          signal: controller.signal,
+          cache: "no-store",
+        });
+        if (!res.ok) {
+          throw new Error(`Status check failed with ${res.status}`);
+        }
+
         const data = await res.json() as { trainingStatus: string };
         const { trainingStatus } = data;
+        pollFailureCountRef.current = 0;
+
+        if (cancelled) return;
+
         if (trainingStatus === "ready") {
           setStep("ready");
-          clearInterval(interval);
         } else if (trainingStatus === "error") {
           setError("Training failed. Please try again.");
           setStep("setup");
-          clearInterval(interval);
+        } else {
+          timeoutId = setTimeout(pollStatus, 3000);
         }
-      } catch {
-        // Silently continue polling on transient network errors
       }
-    }, 3000);
+      catch (err) {
+        if (cancelled || (err instanceof DOMException && err.name === "AbortError")) {
+          return;
+        }
 
-    return () => clearInterval(interval);
+        pollFailureCountRef.current += 1;
+
+        if (pollFailureCountRef.current >= MAX_STATUS_FAILURES) {
+          setError("Lost connection while checking training status. Please restart the dev server and refresh this page.");
+          setStep("setup");
+          return;
+        }
+
+        timeoutId = setTimeout(pollStatus, 3000);
+      }
+    };
+
+    void pollStatus();
+
+    return () => {
+      cancelled = true;
+      controller?.abort();
+      if (timeoutId) clearTimeout(timeoutId);
+    };
   }, [step, chatbot?.id]);
 
   async function handleScrape() {
@@ -175,7 +222,7 @@ export default function ChatbotSetupPage() {
       
       if (!currentChatbot) {
         // Fallback check in case the API returned slowly on mount
-        const getRes = await fetch("/api/chatbots");
+        const getRes = await fetch("/api/agents");
         if (getRes.ok) {
           const getData = await getRes.json() as { chatbot: Chatbot | null };
           if (getData.chatbot) {
@@ -185,7 +232,7 @@ export default function ChatbotSetupPage() {
       }
 
       if (!currentChatbot) {
-        const chatbotRes = await fetch("/api/chatbots", {
+        const chatbotRes = await fetch("/api/agents", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ name: "Support Bot" }),

@@ -1,7 +1,7 @@
 import type { Message } from "./types";
 
 export async function fetchConfig(chatbotId: string, baseUrl: string) {
-  const res = await fetch(`${baseUrl}/api/chatbots/${chatbotId}/config`);
+  const res = await fetch(`${baseUrl}/api/agents/${chatbotId}/config`);
   if (!res.ok) throw new Error("Failed to fetch chatbot config");
   return res.json();
 }

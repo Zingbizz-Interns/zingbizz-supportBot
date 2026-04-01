@@ -3,6 +3,7 @@ import {
   getChatbotByUserId,
   createChatbot,
 } from "@/lib/db/queries/chatbots";
+import { recoverTrainingStatus } from "@/lib/training-status";
 
 export async function GET() {
   const session = await auth();
@@ -11,7 +12,9 @@ export async function GET() {
   }
 
   try {
-    const chatbot = await getChatbotByUserId(session.user.id);
+    const chatbot = await recoverTrainingStatus(
+      await getChatbotByUserId(session.user.id)
+    );
     return Response.json({ chatbot });
   } catch (error) {
     const msg =

@@ -2,7 +2,23 @@
 
 import { signIn } from "next-auth/react";
 
-export function OAuthButtons() {
+interface OAuthButtonsProps {
+  providers: {
+    google: boolean;
+    github: boolean;
+  };
+}
+
+export function OAuthButtons({ providers }: OAuthButtonsProps) {
+  const enabledProviders = [
+    providers.google ? "google" : null,
+    providers.github ? "github" : null,
+  ].filter(Boolean);
+
+  if (enabledProviders.length === 0) {
+    return null;
+  }
+
   return (
     <div className="flex flex-col gap-3">
       <div className="flex items-center gap-3 my-1">
@@ -13,23 +29,27 @@ export function OAuthButtons() {
         <div className="flex-1 h-px bg-[#2D3A31]/10" />
       </div>
 
-      <button
-        type="button"
-        onClick={() => signIn("google", { callbackUrl: "/dashboard" })}
-        className="flex items-center justify-center gap-3 w-full rounded-full border border-[#2D3A31]/20 bg-transparent hover:bg-[#2D3A31]/5 px-6 py-2.5 font-sans text-sm font-medium text-[#2D3A31] transition-colors duration-300"
-      >
-        <GoogleIcon />
-        Continue with Google
-      </button>
+      {providers.google && (
+        <button
+          type="button"
+          onClick={() => signIn("google", { callbackUrl: "/dashboard" })}
+          className="flex items-center justify-center gap-3 w-full rounded-full border border-[#2D3A31]/20 bg-transparent hover:bg-[#2D3A31]/5 px-6 py-2.5 font-sans text-sm font-medium text-[#2D3A31] transition-colors duration-300"
+        >
+          <GoogleIcon />
+          Continue with Google
+        </button>
+      )}
 
-      <button
-        type="button"
-        onClick={() => signIn("github", { callbackUrl: "/dashboard" })}
-        className="flex items-center justify-center gap-3 w-full rounded-full border border-[#2D3A31]/20 bg-transparent hover:bg-[#2D3A31]/5 px-6 py-2.5 font-sans text-sm font-medium text-[#2D3A31] transition-colors duration-300"
-      >
-        <GitHubIcon />
-        Continue with GitHub
-      </button>
+      {providers.github && (
+        <button
+          type="button"
+          onClick={() => signIn("github", { callbackUrl: "/dashboard" })}
+          className="flex items-center justify-center gap-3 w-full rounded-full border border-[#2D3A31]/20 bg-transparent hover:bg-[#2D3A31]/5 px-6 py-2.5 font-sans text-sm font-medium text-[#2D3A31] transition-colors duration-300"
+        >
+          <GitHubIcon />
+          Continue with GitHub
+        </button>
+      )}
     </div>
   );
 }

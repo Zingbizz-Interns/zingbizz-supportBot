@@ -50,7 +50,7 @@ An AI-powered chatbot SaaS MVP. Small business owners connect their website URL 
 
 3. **Never hardcode API keys** — all secrets via environment variables. See `.env.example` for required vars.
 
-4. **Never skip CORS headers on public endpoints** — `/api/chat` and `/api/chatbots/[id]/config` are called from external domains. They MUST have `Access-Control-Allow-Origin: *`.
+4. **Never skip CORS headers on public endpoints** — `/api/chat` and `/api/agents/[id]/config` are called from external domains. They MUST have `Access-Control-Allow-Origin: *`.
 
 5. **Never add rate limiting to dashboard/auth routes** — only `/api/chat` (per `chatbotId`, 50 req/min via Upstash).
 
@@ -99,7 +99,7 @@ ORDER BY embedding <=> $queryEmbedding LIMIT 5
 - NextAuth.js v5 (`auth.ts` in `lib/`)
 - Sessions are JWT (no DB session table needed for MVP)
 - Protected routes: all `(dashboard)` group routes
-- Public routes: `/api/chat`, `/api/chatbots/[id]/config`, `public/widget.js`
+- Public routes: `/api/chat`, `/api/agents/[id]/config`, `public/widget.js`
 - `proxy.ts` handles route protection automatically
 
 ---
@@ -131,7 +131,7 @@ The embeddable widget is a **separate build target**:
 - The widget maintains message history in memory (array), never in localStorage or server
 
 Widget calls two public API endpoints:
-1. `GET /api/chatbots/{id}/config` — on load, to get name/color/welcome message
+1. `GET /api/agents/{id}/config` — on load, to get name/color/welcome message
 2. `POST /api/chat` — on each user message (streaming)
 
 ---

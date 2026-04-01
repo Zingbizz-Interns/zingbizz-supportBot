@@ -47,21 +47,20 @@ export async function ragQuery({
     answered,
   }).catch(console.error);
 
-  // 6. If below threshold, return fallback directly — no LLM call
-  if (!answered || results.length === 0) {
-    return { stream: null, fallbackText: chatbot.fallbackMessage, sources: [], answered: false };
+  // 6. If below threshold, we will still pass to LLM but with empty context
+  // This allows the LLM to handle basic greetings politely instead of abruptly failing.
+  let contextChunks = "";
+  let sources: string[] = [];
+
+  if (answered && results.length > 0) {
+    contextChunks = results
+      .map((r, i) => `[Context ${i + 1}]\n${r.content}`)
+      .join("\n\n---\n\n");
+    sources = deduplicateSources(results.map((r) => r.metadata));
   }
 
-  // 7. Build context from retrieved chunks
-  const contextChunks = results
-    .map((r, i) => `[Context ${i + 1}]\n${r.content}`)
-    .join("\n\n---\n\n");
-
-  // 8. Deduplicate sources
-  const sources = deduplicateSources(results.map((r) => r.metadata));
-
-  // 9. Build system prompt
-  const systemPrompt = buildSystemPrompt(chatbot.name, contextChunks);
+  // 7. Build system prompt
+  const systemPrompt = buildSystemPrompt(chatbot.name, contextChunks, chatbot.fallbackMessage);
 
   // 10. Build messages array (history + current message)
   const messages: ModelMessage[] = [
@@ -78,15 +77,19 @@ export async function ragQuery({
   return { stream, fallbackText: null, sources, answered: true };
 }
 
-function buildSystemPrompt(chatbotName: string, context: string): string {
+function buildSystemPrompt(chatbotName: string, context: string, fallbackMessage: string | null): string {
+  const fallback = fallbackMessage || "I'm not sure about that. Please contact support for assistance.";
+
   return `You are ${chatbotName}, a helpful AI assistant. Answer questions using ONLY the provided context below. Be concise, friendly, and accurate.
 
-If the context doesn't contain enough information to answer the question, say you're not sure and suggest contacting support.
+If the user sends a basic greeting or conversational pleasantry (e.g., "hi", "hello", "thanks"), respond politely and warmly.
+However, if the user asks a specific question and the context doesn't contain enough information to answer it, you MUST reply EXACTLY with this fallback message:
+"${fallback}"
 
-Do NOT make up information. Do NOT reference "the context" or "the document" directly — just answer naturally.
+Do NOT make up information. Do NOT reference "the context", "the document", or "your training data" directly.
 
 CONTEXT:
-${context}`;
+${context ? context : "No context available. Only answer greetings."}`;
 }
 
 function deduplicateSources(metadataList: DocumentMetadata[]): string[] {

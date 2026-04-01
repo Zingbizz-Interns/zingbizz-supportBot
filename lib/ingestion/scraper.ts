@@ -6,6 +6,10 @@ export interface ScrapedPage {
   content: string;
 }
 
+const MAX_PAGE_CONTENT_CHARS = 50_000;
+const MAX_TOTAL_SCRAPED_CONTENT_CHARS = 250_000;
+const MAX_HTML_BYTES = 2 * 1024 * 1024;
+
 const BLOCKED_SELECTORS = [
   "nav", "footer", "header", "script", "style", "noscript",
   "[role='navigation']", "[role='banner']", "[role='contentinfo']",
@@ -27,6 +31,11 @@ function extractText($: ReturnType<typeof cheerio.load>): string {
     .replace(/[ ]{2,}/g, " ")
     .replace(/\n{3,}/g, "\n\n")
     .trim();
+}
+
+function clampText(text: string, maxChars: number): string {
+  if (text.length <= maxChars) return text;
+  return text.slice(0, maxChars).trim();
 }
 
 function extractInternalLinks(
@@ -77,12 +86,50 @@ async function fetchPage(url: string): Promise<{ html: string; finalUrl: string 
     if (!res.ok) return null;
     const contentType = res.headers.get("content-type") ?? "";
     if (!contentType.includes("text/html")) return null;
+    const contentLength = Number(res.headers.get("content-length") ?? "0");
+    if (Number.isFinite(contentLength) && contentLength > MAX_HTML_BYTES) {
+      console.warn("[scrape] Skipping oversized page:", url, contentLength);
+      return null;
+    }
 
-    const html = await res.text();
+    const html = await readTextWithLimit(res, MAX_HTML_BYTES);
     return { html, finalUrl: res.url };
   } catch {
     return null;
   }
+}
+
+async function readTextWithLimit(res: Response, maxBytes: number): Promise<string> {
+  if (!res.body) {
+    return res.text();
+  }
+
+  const reader = res.body.getReader();
+  const chunks: Uint8Array[] = [];
+  let totalBytes = 0;
+
+  while (true) {
+    const { value, done } = await reader.read();
+    if (done) break;
+    if (!value) continue;
+
+    totalBytes += value.byteLength;
+    if (totalBytes > maxBytes) {
+      await reader.cancel();
+      throw new Error(`Response exceeded ${maxBytes} bytes`);
+    }
+
+    chunks.push(value);
+  }
+
+  const merged = new Uint8Array(totalBytes);
+  let offset = 0;
+  for (const chunk of chunks) {
+    merged.set(chunk, offset);
+    offset += chunk.byteLength;
+  }
+
+  return new TextDecoder().decode(merged);
 }
 
 export async function scrapeWebsite(
@@ -92,6 +139,7 @@ export async function scrapeWebsite(
   const results: ScrapedPage[] = [];
   const visited = new Set<string>();
   const queue: string[] = [url];
+  let totalContentChars = 0;
 
   while (queue.length > 0 && results.length < maxPages) {
     const currentUrl = queue.shift()!;
@@ -117,14 +165,24 @@ export async function scrapeWebsite(
     // Collect internal links before extractText removes nav elements
     const internalLinks = extractInternalLinks($, currentUrl);
 
-    const content = extractText($);
-    if (content.length < 100) continue; // skip near-empty pages
+    const rawContent = extractText($);
+    if (rawContent.length < 100) continue; // skip near-empty pages
+
+    const remainingBudget = MAX_TOTAL_SCRAPED_CONTENT_CHARS - totalContentChars;
+    if (remainingBudget <= 0) break;
+
+    const content = clampText(
+      rawContent,
+      Math.min(MAX_PAGE_CONTENT_CHARS, remainingBudget)
+    );
+    if (content.length < 100) continue;
 
     results.push({
       url: normalizedUrl,
       title,
       content,
     });
+    totalContentChars += content.length;
 
     // Add new links to queue
     for (const link of internalLinks) {

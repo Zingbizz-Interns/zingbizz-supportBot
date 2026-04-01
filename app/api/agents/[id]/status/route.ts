@@ -1,5 +1,6 @@
 import { auth } from "@/lib/auth";
 import { getChatbotById } from "@/lib/db/queries/chatbots";
+import { recoverTrainingStatus } from "@/lib/training-status";
 
 export async function GET(
   _request: Request,
@@ -13,7 +14,7 @@ export async function GET(
   const { id } = await params;
 
   try {
-    const chatbot = await getChatbotById(id);
+    const chatbot = await recoverTrainingStatus(await getChatbotById(id));
     if (!chatbot) return Response.json({ error: "Not found" }, { status: 404 });
     if (chatbot.userId !== session.user.id) {
       return Response.json({ error: "Forbidden" }, { status: 403 });

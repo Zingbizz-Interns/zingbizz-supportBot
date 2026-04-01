@@ -15,6 +15,29 @@ export interface IngestionFile {
   content: string;
 }
 
+const EMBEDDING_BATCH_SIZE = 25;
+
+async function ingestSourceChunks(
+  chatbotId: string,
+  chunks: Array<{ content: string; index: number }>,
+  metadata: NewDocument["metadata"]
+): Promise<void> {
+  for (let i = 0; i < chunks.length; i += EMBEDDING_BATCH_SIZE) {
+    const chunkBatch = chunks.slice(i, i + EMBEDDING_BATCH_SIZE);
+    const texts = chunkBatch.map((chunk) => chunk.content);
+    const embeddings = await embedTexts(texts);
+
+    const docs: NewDocument[] = chunkBatch.map((chunk, index) => ({
+      chatbotId,
+      content: chunk.content,
+      metadata,
+      embedding: embeddings[index],
+    }));
+
+    await insertDocuments(docs);
+  }
+}
+
 export async function runIngestionPipeline(
   chatbotId: string,
   pages: IngestionPage[],
@@ -23,53 +46,29 @@ export async function runIngestionPipeline(
   try {
     await updateChatbot(chatbotId, { trainingStatus: "training" });
 
-    const allDocs: NewDocument[] = [];
-
     // Process pages
     for (const page of pages) {
-      const chunks = chunkText(page.content);
+      const chunks = await chunkText(page.content);
       if (chunks.length === 0) continue;
 
-      const texts = chunks.map((c) => c.content);
-      const embeddings = await embedTexts(texts);
-
-      for (let i = 0; i < chunks.length; i++) {
-        allDocs.push({
-          chatbotId,
-          content: chunks[i].content,
-          metadata: {
-            url: page.url,
-            title: page.title,
-            source_type: "scrape" as const,
-          },
-          embedding: embeddings[i],
-        });
-      }
+      await ingestSourceChunks(chatbotId, chunks, {
+        url: page.url,
+        title: page.title,
+        source_type: "scrape" as const,
+      });
     }
 
     // Process uploaded files
     for (const file of files) {
-      const chunks = chunkText(file.content);
+      const chunks = await chunkText(file.content);
       if (chunks.length === 0) continue;
 
-      const texts = chunks.map((c) => c.content);
-      const embeddings = await embedTexts(texts);
-
-      for (let i = 0; i < chunks.length; i++) {
-        allDocs.push({
-          chatbotId,
-          content: chunks[i].content,
-          metadata: {
-            title: file.fileName,
-            source_type: "upload" as const,
-            file_name: file.fileName,
-          },
-          embedding: embeddings[i],
-        });
-      }
+      await ingestSourceChunks(chatbotId, chunks, {
+        title: file.fileName,
+        source_type: "upload" as const,
+        file_name: file.fileName,
+      });
     }
-
-    await insertDocuments(allDocs);
     await updateChatbot(chatbotId, { trainingStatus: "ready" });
   } catch (error) {
     console.error("[ingestion] Pipeline error:", error);

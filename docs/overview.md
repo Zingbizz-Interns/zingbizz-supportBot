@@ -2,52 +2,55 @@
 
 ## Product
 
-**AI Support Chatbot SaaS (MVP)**
+This repository contains a hosted support-chatbot SaaS built with Next.js 16. A user signs up, creates one chatbot, trains it on scraped web pages and uploaded documents, customizes its presentation, and embeds it on an external site with a single `<script>` tag.
 
-A SaaS platform that lets small business owners create an AI-powered chatbot trained on their website and documents, then embed it on their site via a `<script>` tag — no technical knowledge required.
+## Current Product Flow
 
-## Target Users
+1. User signs up with credentials or optional OAuth.
+2. The dashboard creates one chatbot record for the account.
+3. The user scrapes up to 10 pages from a site and/or uploads up to 10 files.
+4. `/api/train` kicks off an in-process ingestion job.
+5. Content is chunked, embedded, and written into the `documents` table.
+6. The chatbot becomes `ready` when training finishes.
+7. The user customizes the chatbot name, welcome message, fallback message, and brand color.
+8. The user copies a script snippet that loads `public/widget.js`.
+9. The public widget calls `/api/chat` and streams responses from the RAG pipeline.
+10. Dashboard insights are built from entries in the `queries` table.
 
-- Small business owners (clinics, agencies, local services)
-- E-commerce store owners
-- Non-technical users seeking automated customer support
+## Supported Inputs
 
-## Core Value Proposition
+- Website pages discovered by the scraper
+- PDF uploads
+- Plain text uploads
+- Markdown uploads
 
-1. Create a chatbot in under 5 minutes
-2. AI answers questions based on the business's own data (RAG)
-3. Embed anywhere via a single script tag
-4. No coding required
+## Current Constraints
 
-## User Journey (MVP)
+- One chatbot per user account
+- No persisted conversation transcripts
+- Training jobs run in the Next.js process, not in a separate worker
+- Widget initialization is blocked until `trainingStatus === "ready"`
+- Analytics are lightweight and question-based, not conversation-thread based
+- Widget allowlisting and billing are not implemented
 
-1. Sign up / log in
-2. Create chatbot (1 per account in MVP)
-3. Input data: website URL (scraped) or upload PDF/text files
-4. Click "Train Chatbot"
-5. Get instant preview (homepage-only, fast)
-6. Background full training runs
-7. Customize: name, welcome message, fallback message, brand color
-8. Test in preview
-9. Copy embed script
-10. Paste on their website
-11. Chatbot appears as floating bubble (bottom-right), auto-opens with welcome message
-12. Dashboard shows top questions and unanswered questions
+## Authentication Model
 
-## What MVP Excludes
+- Credentials auth is always available
+- Google OAuth is enabled only when `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` are set
+- GitHub OAuth is enabled only when `GITHUB_ID` and `GITHUB_SECRET` are set
+- Protected dashboard routes are enforced in both `proxy.ts` and the dashboard layout
 
-- Multiple chatbots per account (1 only)
-- Payment / billing (Stripe deferred to v2)
-- Chat history persistence
-- Human handoff
-- OAuth login (credentials only)
-- Domain allowlisting for the widget
-- Advanced analytics / full conversation threads
+## AI Behavior
 
-## Success Criteria
+- Document and query embeddings come from Cohere
+- Production chat responses use xAI Grok through the Vercel AI SDK
+- Test mode can swap chat generation to NVIDIA NIM via `AI_PROVIDER_MODE=test`
+- When retrieval confidence is low, the app still calls the chat model, but the system prompt forces the configured fallback message for factual questions and allows simple greetings
 
-- User can create a working chatbot in <5 minutes
-- Chatbot answers accurately based on scraped/uploaded data
-- Embed script works on any website
-- Instant preview loads in <30 seconds
-- Basic insights are visible after conversations
+## Docs Map
+
+- `docs/architecture.md`: runtime flow, widget flow, and training lifecycle
+- `docs/api-design.md`: request and response contracts for all routes
+- `docs/database-schema.md`: Drizzle schema and query model
+- `docs/project-structure.md`: repository layout and key files
+- `docs/tech-stack.md`: dependencies, scripts, and environment requirements
