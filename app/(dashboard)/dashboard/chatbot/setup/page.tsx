@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
-import { Loader2, CheckCircle2, Globe, Upload, X, ChevronRight } from "lucide-react";
+import { Loader2, CheckCircle2, Globe, Upload, X, ChevronRight, RefreshCw } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -349,6 +349,10 @@ export default function ChatbotSetupPage() {
                   Get embed code
                 </Button>
               </Link>
+              <Button variant="secondary" size="md" onClick={() => setStep("setup")}>
+                <RefreshCw size={14} strokeWidth={1.5} className="mr-1.5" />
+                Re-train
+              </Button>
             </div>
           </div>
         </Card>
@@ -474,7 +478,7 @@ export default function ChatbotSetupPage() {
         </div>
 
         <p className="font-sans text-sm text-[#8C9A84]">
-          Optionally upload PDF or TXT files to include in your chatbot&apos;s knowledge base.
+          Optionally upload PDF, TXT, or Markdown files to include in your chatbot&apos;s knowledge base.
         </p>
 
         <div>
@@ -489,7 +493,7 @@ export default function ChatbotSetupPage() {
             ref={fileInputRef}
             id="file-upload"
             type="file"
-            accept=".pdf,.txt"
+            accept=".pdf,.txt,.md"
             multiple
             onChange={handleFileChange}
             className="sr-only"

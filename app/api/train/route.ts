@@ -5,6 +5,7 @@ import { runIngestionPipeline, type IngestionPage, type IngestionFile } from "@/
 import { extractTextFromPdf, extractTextFromPlainText } from "@/lib/ingestion/pdf-parser";
 import { parseBody } from "@/lib/validation/parse";
 import { trainRequestSchema } from "@/lib/validation/schemas";
+import { trainRateLimit } from "@/lib/rate-limit";
 
 const MAX_PAGE_CONTENT_CHARS = 50_000;
 const MAX_TOTAL_PAGE_CHARS = 250_000;
@@ -13,6 +14,14 @@ export async function POST(request: Request) {
   const session = await auth();
   if (!session?.user?.id) {
     return Response.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  const { success } = await trainRateLimit.limit(session.user.id);
+  if (!success) {
+    return Response.json(
+      { error: "Too many training requests. Please wait a few minutes before trying again." },
+      { status: 429 }
+    );
   }
 
   let body: unknown;
@@ -91,7 +100,7 @@ export async function POST(request: Request) {
         const trimmedContent = content.trim();
         if (trimmedContent) {
           console.log(`[train] Extracted ${trimmedContent.length} chars from ${fileName}`);
-          ingestionFiles.push({ fileName, content: trimmedContent });
+          ingestionFiles.push({ fileName, content: trimmedContent, blobUrl });
         } else {
           console.warn(`[train] No text extracted from ${fileName} — file may be empty or image-only`);
         }

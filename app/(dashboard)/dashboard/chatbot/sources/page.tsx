@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { Loader2, Trash2, Globe, FileText } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -32,6 +33,7 @@ function formatDate(dateStr?: string | null): string {
 }
 
 export default function SourcesPage() {
+  const router = useRouter();
   const [sources, setSources] = useState<Source[]>([]);
   const [chatbotId, setChatbotId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -46,7 +48,7 @@ export default function SourcesPage() {
         const chatbotData = await chatbotRes.json();
         const bot = chatbotData.chatbot;
         if (!bot) {
-          setLoading(false);
+          router.replace("/dashboard/chatbot/setup");
           return;
         }
         setChatbotId(bot.id);

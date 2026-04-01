@@ -1,6 +1,7 @@
 import { auth } from "@/lib/auth";
+import { del } from "@vercel/blob";
 import { getChatbotById } from "@/lib/db/queries/chatbots";
-import { deleteDocumentsBySource } from "@/lib/db/queries/documents";
+import { deleteDocumentsBySource, getSourceBlobUrl } from "@/lib/db/queries/documents";
 
 export async function DELETE(
   _request: Request,
@@ -21,7 +22,23 @@ export async function DELETE(
     }
 
     const decodedSourceId = decodeURIComponent(sourceId);
+
+    // Fetch blob URL before deleting (returns null for scraped sources)
+    const blobUrl = await getSourceBlobUrl(id, decodedSourceId);
+
     await deleteDocumentsBySource(id, decodedSourceId);
+
+    // Clean up Vercel Blob for uploaded sources (non-fatal if it fails)
+    if (blobUrl) {
+      try {
+        const parsed = new URL(blobUrl);
+        if (parsed.protocol === "https:" && parsed.hostname.endsWith(".vercel-storage.com")) {
+          await del(blobUrl);
+        }
+      } catch {
+        // Blob deletion failure is non-fatal — documents are already cleaned up
+      }
+    }
 
     return Response.json({ success: true });
   } catch (error) {

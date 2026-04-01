@@ -54,6 +54,21 @@ export async function deleteDocumentsBySource(
   `);
 }
 
+export async function getSourceBlobUrl(
+  chatbotId: string,
+  sourceKey: string
+): Promise<string | null> {
+  const result = await db.execute(sql`
+    SELECT metadata->>'blob_url' AS blob_url
+    FROM documents
+    WHERE chatbot_id = ${chatbotId}
+      AND metadata->>'file_name' = ${sourceKey}
+    LIMIT 1
+  `);
+  const row = result.rows[0] as { blob_url: string | null } | undefined;
+  return row?.blob_url ?? null;
+}
+
 export async function getDocumentSources(
   chatbotId: string
 ): Promise<Array<{ url: string | null; title: string | null; source_type: string; file_name: string | null; chunk_count: number; created_at: string | null }>> {

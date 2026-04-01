@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { Loader2, BarChart2 } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -38,6 +39,7 @@ function timeAgo(dateStr?: string): string {
 }
 
 export default function InsightsPage() {
+  const router = useRouter();
   const [insights, setInsights] = useState<InsightsData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -50,7 +52,7 @@ export default function InsightsPage() {
         const chatbotData = await chatbotRes.json();
         const bot = chatbotData.chatbot;
         if (!bot) {
-          setLoading(false);
+          router.replace("/dashboard/chatbot/setup");
           return;
         }
 

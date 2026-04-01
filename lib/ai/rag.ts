@@ -17,7 +17,7 @@ interface RagQueryOptions {
 interface RagResult {
   stream: ReturnType<typeof streamChatResponse> | null;
   fallbackText: string | null;
-  sources: string[];
+  sources: Array<{ label: string; url?: string }>;
   answered: boolean;
 }
 
@@ -50,7 +50,7 @@ export async function ragQuery({
   // 6. If below threshold, we will still pass to LLM but with empty context
   // This allows the LLM to handle basic greetings politely instead of abruptly failing.
   let contextChunks = "";
-  let sources: string[] = [];
+  let sources: Array<{ label: string; url?: string }> = [];
 
   if (answered && results.length > 0) {
     contextChunks = results
@@ -92,15 +92,15 @@ CONTEXT:
 ${context ? context : "No context available. Only answer greetings."}`;
 }
 
-function deduplicateSources(metadataList: DocumentMetadata[]): string[] {
+function deduplicateSources(metadataList: DocumentMetadata[]): Array<{ label: string; url?: string }> {
   const seen = new Set<string>();
-  const sources: string[] = [];
+  const sources: Array<{ label: string; url?: string }> = [];
 
   for (const meta of metadataList) {
     const key = meta.url ?? meta.file_name ?? meta.title ?? "";
     if (key && !seen.has(key)) {
       seen.add(key);
-      sources.push(meta.title ?? meta.url ?? meta.file_name ?? key);
+      sources.push({ label: meta.title ?? meta.file_name ?? meta.url ?? key, url: meta.url });
     }
   }
 

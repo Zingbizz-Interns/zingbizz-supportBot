@@ -7,9 +7,10 @@ import {
   jsonb,
   index,
   uniqueIndex,
+  check,
   customType,
 } from "drizzle-orm/pg-core";
-import { relations } from "drizzle-orm";
+import { relations, sql } from "drizzle-orm";
 import { EMBEDDING_DIMENSIONS } from "@/lib/config/embedding";
 
 // Custom pgvector type for configurable-dimensional embeddings
@@ -61,24 +62,36 @@ export const accounts = pgTable(
 
 // ─── Chatbots ─────────────────────────────────────────────────────────────────
 
-export const chatbots = pgTable("chatbots", {
-  id: uuid("id").primaryKey().defaultRandom(),
-  userId: uuid("user_id")
-    .notNull()
-    .references(() => users.id, { onDelete: "cascade" }),
-  name: text("name").notNull().default("Support Bot"),
-  welcomeMessage: text("welcome_message")
-    .notNull()
-    .default("Hi! How can I help you today?"),
-  fallbackMessage: text("fallback_message")
-    .notNull()
-    .default("I'm not sure about that. Please contact support for assistance."),
-  brandColor: text("brand_color").notNull().default("#2D3A31"),
-  trainingStatus: text("training_status").notNull().default("idle"),
-  // trainingStatus values: idle | training | ready | error
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-  updatedAt: timestamp("updated_at").defaultNow().notNull(),
-});
+export const chatbots = pgTable(
+  "chatbots",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    name: text("name").notNull().default("Support Bot"),
+    welcomeMessage: text("welcome_message")
+      .notNull()
+      .default("Hi! How can I help you today?"),
+    fallbackMessage: text("fallback_message")
+      .notNull()
+      .default("I'm not sure about that. Please contact support for assistance."),
+    brandColor: text("brand_color").notNull().default("#2D3A31"),
+    trainingStatus: text("training_status").notNull().default("idle"),
+    // trainingStatus values: idle | training | ready | error
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().notNull().$onUpdateFn(() => new Date()),
+  },
+  (table) => ({
+    // One chatbot per user — mirrors the UNIQUE INDEX in migration 0005
+    userIdUniqueIdx: uniqueIndex("chatbots_user_id_unique_idx").on(table.userId),
+    // Only valid training status values — mirrors the CHECK constraint in migration 0005
+    trainingStatusCheck: check(
+      "chatbots_training_status_check",
+      sql`${table.trainingStatus} IN ('idle', 'training', 'ready', 'error')`
+    ),
+  })
+);
 
 // ─── Documents (embeddings) ───────────────────────────────────────────────────
 
@@ -96,7 +109,9 @@ export const documents = pgTable(
     createdAt: timestamp("created_at").defaultNow().notNull(),
   },
   (table) => ({
+    // B-tree index for filtering by chatbot before the vector scan
     chatbotIdIdx: index("documents_chatbot_id_idx").on(table.chatbotId),
+    // HNSW vector index is created via migration 0005 — not representable in Drizzle schema syntax
   })
 );
 
@@ -167,4 +182,5 @@ export type DocumentMetadata = {
   title?: string;
   source_type: "scrape" | "upload";
   file_name?: string;
+  blob_url?: string; // Full Vercel Blob URL — upload sources only, used for cleanup on deletion
 };

@@ -13,6 +13,7 @@ export interface IngestionPage {
 export interface IngestionFile {
   fileName: string;
   content: string;
+  blobUrl?: string; // Full Vercel Blob URL for cleanup on source deletion
 }
 
 const EMBEDDING_BATCH_SIZE = 25;
@@ -70,6 +71,7 @@ export async function runIngestionPipeline(
         title: file.fileName,
         source_type: "upload" as const,
         file_name: file.fileName,
+        ...(file.blobUrl ? { blob_url: file.blobUrl } : {}),
       });
     }
     await updateChatbot(chatbotId, { trainingStatus: "ready" });

@@ -48,6 +48,8 @@ export function getWidgetStyles(brandColor: string): string {
     .cb-msg-assistant.cb-streaming::after { content: '▋'; animation: cb-blink 1s infinite; }
     @keyframes cb-blink { 0%,100% { opacity: 1; } 50% { opacity: 0; } }
     .cb-sources { font-size: 11px; color: #8C9A84; margin-top: 6px; align-self: flex-start; }
+    .cb-source-link { color: #8C9A84; text-underline-offset: 2px; }
+    .cb-source-link:hover { color: #2D3A31; }
     #cb-footer { padding: 12px 16px; border-top: 1px solid #F2F0EB; }
     #cb-input-row { display: flex; gap: 8px; align-items: center; }
     #cb-input {

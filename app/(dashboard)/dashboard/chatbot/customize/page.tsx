@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { Loader2, Save } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -22,6 +23,7 @@ interface FormState {
 }
 
 export default function CustomizePage() {
+  const router = useRouter();
   const [chatbot, setChatbot] = useState<Chatbot | null>(null);
   const [form, setForm] = useState<FormState>({
     name: "",
@@ -49,6 +51,8 @@ export default function CustomizePage() {
             fallbackMessage: bot.fallbackMessage ?? "",
             brandColor: bot.brandColor ?? "#2D3A31",
           });
+        } else {
+          router.replace("/dashboard/chatbot/setup");
         }
       } catch (err: unknown) {
         setError(err instanceof Error ? err.message : "Something went wrong");

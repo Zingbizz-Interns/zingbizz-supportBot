@@ -1,5 +1,6 @@
 import { auth } from "@/lib/auth";
 import { put } from "@vercel/blob";
+import { uploadRateLimit } from "@/lib/rate-limit";
 
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
 const ALLOWED_TYPES = ["application/pdf", "text/plain", "text/markdown"];
@@ -9,6 +10,14 @@ export async function POST(request: Request) {
   const session = await auth();
   if (!session?.user?.id) {
     return Response.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  const { success } = await uploadRateLimit.limit(session.user.id);
+  if (!success) {
+    return Response.json(
+      { error: "Too many upload requests. Please wait before uploading more files." },
+      { status: 429 }
+    );
   }
 
   let formData: FormData;

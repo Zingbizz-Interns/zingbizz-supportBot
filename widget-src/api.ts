@@ -1,4 +1,4 @@
-import type { Message } from "./types";
+import type { Message, Source } from "./types";
 
 export async function fetchConfig(chatbotId: string, baseUrl: string) {
   const res = await fetch(`${baseUrl}/api/agents/${chatbotId}/config`);
@@ -12,7 +12,7 @@ export async function sendMessage(
   history: Message[],
   baseUrl: string,
   onToken: (token: string) => void,
-  onDone: (sources: string[]) => void,
+  onDone: (sources: Source[]) => void,
   onError: (err: Error) => void
 ): Promise<void> {
   try {
@@ -28,7 +28,7 @@ export async function sendMessage(
 
     // Sources are in the response header — read before consuming body
     const sourcesHeader = res.headers.get("X-Sources");
-    const sources: string[] = sourcesHeader ? (JSON.parse(sourcesHeader) as string[]) : [];
+    const sources: Source[] = sourcesHeader ? (JSON.parse(sourcesHeader) as Source[]) : [];
 
     const reader = res.body?.getReader();
     if (!reader) throw new Error("No response body");

@@ -1,4 +1,4 @@
-import type { ChatbotConfig, Message } from "./types";
+import type { ChatbotConfig, Message, Source } from "./types";
 import { getWidgetStyles } from "./styles";
 import { sendMessage } from "./api";
 
@@ -142,14 +142,29 @@ async function handleSend(): Promise<void> {
       assistantEl.textContent = fullContent;
       scrollToBottom();
     },
-    (sources) => {
+    (sources: Source[]) => {
       assistantEl.classList.remove("cb-streaming");
       history.push({ role: "assistant", content: fullContent });
 
       if (sources.length > 0) {
         const sourcesEl = document.createElement("div");
         sourcesEl.className = "cb-sources";
-        sourcesEl.textContent = "Sources: " + sources.slice(0, 3).join(", ");
+        const prefixNode = document.createTextNode("Sources: ");
+        sourcesEl.appendChild(prefixNode);
+        sources.slice(0, 3).forEach((src, i) => {
+          if (i > 0) sourcesEl.appendChild(document.createTextNode(", "));
+          if (src.url) {
+            const a = document.createElement("a");
+            a.href = src.url;
+            a.target = "_blank";
+            a.rel = "noopener noreferrer";
+            a.textContent = src.label;
+            a.className = "cb-source-link";
+            sourcesEl.appendChild(a);
+          } else {
+            sourcesEl.appendChild(document.createTextNode(src.label));
+          }
+        });
         $("cb-messages")?.appendChild(sourcesEl);
         scrollToBottom();
       }

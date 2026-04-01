@@ -1,3 +1,8 @@
+export interface Source {
+  label: string;
+  url?: string;
+}
+
 export interface ChatbotConfig {
   id: string;
   name: string;
