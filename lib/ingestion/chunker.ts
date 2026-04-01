@@ -5,7 +5,7 @@ export interface TextChunk {
   index: number;
 }
 
-const CHUNK_SIZE = 3000;
+const CHUNK_SIZE = 2000;
 const CHUNK_OVERLAP = 400;
 const MIN_CHUNK_LENGTH = 50;
 

@@ -74,7 +74,7 @@ export async function ragQuery({
   // 11. Stream response
   const stream = streamChatResponse(systemPrompt, messages);
 
-  return { stream, fallbackText: null, sources, answered: true };
+  return { stream, fallbackText: null, sources, answered };
 }
 
 function buildSystemPrompt(chatbotName: string, context: string, fallbackMessage: string | null): string {

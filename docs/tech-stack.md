@@ -11,7 +11,7 @@
 | Database | Neon serverless Postgres | package `@neondatabase/serverless 1.0.2` | Stores users, chatbots, chunks, and insights |
 | Vector search | pgvector | database extension | Custom Drizzle vector type keyed off env dimensions |
 | AI SDK | Vercel AI SDK | `6.0.141` | Used for embeddings and streamed text generation |
-| Embeddings | Cohere | package `@ai-sdk/cohere 3.0.27` | `embed-v4.0` for query and document vectors |
+| Embeddings | OpenAI | package `@ai-sdk/openai 3.0.48` | `text-embedding-3-small` (1536 dims) for query and document vectors |
 | Production chat model | xAI | package `@ai-sdk/xai 3.0.74` | `grok-2-1212` |
 | Test chat model | NVIDIA NIM | `@ai-sdk/openai-compatible 2.0.37` | Enabled through `AI_PROVIDER_MODE=test` |
 | Storage | Vercel Blob | `2.3.2` | Private file uploads resolved through `head()` |
@@ -47,7 +47,7 @@ AUTH_SECRET=
 BLOB_READ_WRITE_TOKEN=
 UPSTASH_REDIS_REST_URL=
 UPSTASH_REDIS_REST_TOKEN=
-COHERE_API_KEY=
+OPENAI_API_KEY=
 XAI_API_KEY=
 ```
 
@@ -88,8 +88,8 @@ EMBEDDING_DIMENSIONS=1536
 ### AI provider split
 
 - Embeddings and chat generation are configured independently
-- Embeddings currently come from Cohere
-- Chat generation uses xAI in production and NVIDIA NIM in test mode
+- Embeddings use OpenAI `text-embedding-3-small` (1536 dimensions)
+- Chat generation uses xAI Grok in production and NVIDIA NIM in test mode
 
 ### Scraping tradeoff
 

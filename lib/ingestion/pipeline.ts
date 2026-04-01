@@ -1,6 +1,6 @@
 import { chunkText } from "./chunker";
 import { updateChatbot } from "../db/queries/chatbots";
-import { insertDocuments } from "../db/queries/documents";
+import { insertDocuments, deleteAllDocumentsByChatbot } from "../db/queries/documents";
 import { embedTexts } from "../ai/embed";
 import type { NewDocument } from "../db/schema";
 
@@ -46,6 +46,9 @@ export async function runIngestionPipeline(
   try {
     await updateChatbot(chatbotId, { trainingStatus: "training" });
 
+    // Clear all existing documents so re-training fully replaces prior content
+    await deleteAllDocumentsByChatbot(chatbotId);
+
     // Process pages
     for (const page of pages) {
       const chunks = await chunkText(page.content);
@@ -77,10 +80,3 @@ export async function runIngestionPipeline(
   }
 }
 
-// Phase 1 fast path: process only the first page for instant preview
-export async function runPhase1Pipeline(
-  chatbotId: string,
-  firstPage: IngestionPage
-): Promise<void> {
-  await runIngestionPipeline(chatbotId, [firstPage]);
-}

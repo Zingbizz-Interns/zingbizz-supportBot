@@ -1,9 +1,8 @@
 import { auth } from "@/lib/auth";
-import {
-  getChatbotByUserId,
-  createChatbot,
-} from "@/lib/db/queries/chatbots";
+import { getChatbotByUserId, createChatbot } from "@/lib/db/queries/chatbots";
 import { recoverTrainingStatus } from "@/lib/training-status";
+import { parseBody } from "@/lib/validation/parse";
+import { createChatbotSchema } from "@/lib/validation/schemas";
 
 export async function GET() {
   const session = await auth();
@@ -17,17 +16,9 @@ export async function GET() {
     );
     return Response.json({ chatbot });
   } catch (error) {
-    const msg =
-      error instanceof Error ? error.message : "Internal server error";
+    const msg = error instanceof Error ? error.message : "Internal server error";
     return Response.json({ error: msg }, { status: 500 });
   }
-}
-
-interface CreateChatbotBody {
-  name?: string;
-  welcomeMessage?: string;
-  fallbackMessage?: string;
-  brandColor?: string;
 }
 
 export async function POST(request: Request) {
@@ -36,7 +27,6 @@ export async function POST(request: Request) {
     return Response.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  // One chatbot per user
   const existing = await getChatbotByUserId(session.user.id);
   if (existing) {
     return Response.json(
@@ -45,23 +35,22 @@ export async function POST(request: Request) {
     );
   }
 
-  let body: CreateChatbotBody = {};
+  let body: unknown = {};
   try {
     body = await request.json();
   } catch {
     // body is optional — use defaults
   }
 
-  const { name, welcomeMessage, fallbackMessage, brandColor } = body;
+  const parsed = parseBody(createChatbotSchema, body);
+  if (!parsed.ok) return parsed.response;
 
-  if (name !== undefined && (typeof name !== "string" || name.trim().length === 0)) {
-    return Response.json({ error: "name must be a non-empty string" }, { status: 400 });
-  }
+  const { name, welcomeMessage, fallbackMessage, brandColor } = parsed.data;
 
   try {
     const chatbot = await createChatbot({
       userId: session.user.id,
-      ...(name ? { name: name.trim() } : {}),
+      ...(name ? { name } : {}),
       ...(welcomeMessage ? { welcomeMessage } : {}),
       ...(fallbackMessage ? { fallbackMessage } : {}),
       ...(brandColor ? { brandColor } : {}),
@@ -69,8 +58,7 @@ export async function POST(request: Request) {
 
     return Response.json({ chatbot }, { status: 201 });
   } catch (error) {
-    const msg =
-      error instanceof Error ? error.message : "Internal server error";
+    const msg = error instanceof Error ? error.message : "Internal server error";
     return Response.json({ error: msg }, { status: 500 });
   }
 }

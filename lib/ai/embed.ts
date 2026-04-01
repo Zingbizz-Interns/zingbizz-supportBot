@@ -1,20 +1,8 @@
-import { cohere, type CohereEmbeddingModelOptions } from "@ai-sdk/cohere";
+import { openai } from "@ai-sdk/openai";
 import { embed, embedMany } from "ai";
 import { EMBEDDING_DIMENSIONS } from "@/lib/config/embedding";
 
-const embeddingModel = cohere.embedding("embed-v4.0");
-
-/** Build provider options with the correct Cohere inputType */
-function buildOptions(inputType: "search_query" | "search_document") {
-  return {
-    providerOptions: {
-      cohere: {
-        inputType,
-        truncate: "END",
-      } satisfies CohereEmbeddingModelOptions,
-    },
-  };
-}
+const embeddingModel = openai.embedding("text-embedding-3-small");
 
 function validateEmbeddingDimensions(embedding: number[]) {
   if (embedding.length !== EMBEDDING_DIMENSIONS) {
@@ -30,7 +18,6 @@ export async function embedText(text: string): Promise<number[]> {
   const { embedding } = await embed({
     model: embeddingModel,
     value: text,
-    ...buildOptions("search_query"),
   });
   validateEmbeddingDimensions(embedding);
   return embedding;
@@ -42,7 +29,6 @@ export async function embedTexts(texts: string[]): Promise<number[][]> {
 
   const batchSize = 25;
   const allEmbeddings: number[][] = [];
-  const options = buildOptions("search_document");
 
   console.log(`[embed] Starting embedding for ${texts.length} chunks...`);
 
@@ -54,7 +40,6 @@ export async function embedTexts(texts: string[]): Promise<number[][]> {
       const { embeddings } = await embedMany({
         model: embeddingModel,
         values: batch,
-        ...options,
       });
       embeddings.forEach(validateEmbeddingDimensions);
       allEmbeddings.push(...embeddings);

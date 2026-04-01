@@ -1,5 +1,7 @@
 import { ragQuery } from "@/lib/ai/rag";
 import { chatRateLimit } from "@/lib/rate-limit";
+import { parseBody } from "@/lib/validation/parse";
+import { chatRequestSchema } from "@/lib/validation/schemas";
 
 const CORS_HEADERS = {
   "Access-Control-Allow-Origin": "*",
@@ -9,17 +11,6 @@ const CORS_HEADERS = {
 
 export async function OPTIONS() {
   return new Response(null, { status: 204, headers: CORS_HEADERS });
-}
-
-interface ChatMessage {
-  role: "user" | "assistant";
-  content: string;
-}
-
-interface ChatRequestBody {
-  chatbotId: string;
-  message: string;
-  history?: ChatMessage[];
 }
 
 export async function POST(request: Request) {
@@ -33,29 +24,10 @@ export async function POST(request: Request) {
     );
   }
 
-  const { chatbotId, message, history = [] } = body as ChatRequestBody;
+  const parsed = parseBody(chatRequestSchema, body, CORS_HEADERS);
+  if (!parsed.ok) return parsed.response;
 
-  // Validate required fields
-  if (!chatbotId || typeof chatbotId !== "string") {
-    return Response.json(
-      { error: "chatbotId is required" },
-      { status: 400, headers: CORS_HEADERS }
-    );
-  }
-
-  if (!message || typeof message !== "string") {
-    return Response.json(
-      { error: "message is required" },
-      { status: 400, headers: CORS_HEADERS }
-    );
-  }
-
-  if (message.length > 1000) {
-    return Response.json(
-      { error: "message must be 1000 characters or fewer" },
-      { status: 400, headers: CORS_HEADERS }
-    );
-  }
+  const { chatbotId, message, history } = parsed.data;
 
   // Rate limiting per chatbotId
   const { success } = await chatRateLimit.limit(chatbotId);
@@ -66,25 +38,9 @@ export async function POST(request: Request) {
     );
   }
 
-  // Validate history shape
-  const validHistory: ChatMessage[] = Array.isArray(history)
-    ? history.filter(
-        (m): m is ChatMessage =>
-          m !== null &&
-          typeof m === "object" &&
-          (m.role === "user" || m.role === "assistant") &&
-          typeof m.content === "string"
-      )
-    : [];
-
   try {
-    const result = await ragQuery({
-      chatbotId,
-      message,
-      history: validHistory,
-    });
+    const result = await ragQuery({ chatbotId, message, history });
 
-    // Fallback path: return the message directly without calling the LLM
     if (!result.stream) {
       return new Response(result.fallbackText ?? "", {
         status: 200,
@@ -94,7 +50,6 @@ export async function POST(request: Request) {
 
     const streamResponse = result.stream.toTextStreamResponse();
 
-    // Merge CORS headers and sources header into the streaming response
     const responseHeaders = new Headers(streamResponse.headers);
     for (const [key, value] of Object.entries(CORS_HEADERS)) {
       responseHeaders.set(key, value);
@@ -108,10 +63,9 @@ export async function POST(request: Request) {
       headers: responseHeaders,
     });
   } catch (error) {
-    const message =
-      error instanceof Error ? error.message : "Internal server error";
+    const msg = error instanceof Error ? error.message : "Internal server error";
     return Response.json(
-      { error: message },
+      { error: msg },
       { status: 500, headers: CORS_HEADERS }
     );
   }

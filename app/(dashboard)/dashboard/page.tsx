@@ -2,6 +2,8 @@ import Link from "next/link";
 import { auth } from "@/lib/auth";
 import { Card } from "@/components/ui/card";
 import { Settings, Palette, Code, ArrowRight } from "lucide-react";
+import { getChatbotByUserId } from "@/lib/db/queries/chatbots";
+import { recoverTrainingStatus } from "@/lib/training-status";
 
 interface QuickLink {
   label: string;
@@ -35,6 +37,42 @@ export default async function DashboardPage() {
   const session = await auth();
   const email = session?.user?.email ?? "";
   const displayName = email.split("@")[0] ?? "there";
+  const chatbot =
+    session?.user?.id
+      ? await recoverTrainingStatus(await getChatbotByUserId(session.user.id))
+      : null;
+
+  const trainingContent = chatbot?.trainingStatus === "ready"
+    ? {
+        title: "Training complete",
+        description: "Your chatbot is ready to customize and embed.",
+        badgeLabel: "Ready",
+        badgeClassName: "bg-[#2D3A31] text-white",
+        actionLabel: "Manage chatbot",
+      }
+    : chatbot?.trainingStatus === "training"
+      ? {
+          title: "Training in progress",
+          description: "We're processing your content and building your chatbot knowledge base.",
+          badgeLabel: "Training",
+          badgeClassName: "bg-[#F2F0EB] text-[#2D3A31]",
+          actionLabel: "View training",
+        }
+      : chatbot?.trainingStatus === "error"
+        ? {
+            title: "Training needs attention",
+            description: "Something interrupted training. Review your sources and try again.",
+            badgeLabel: "Error",
+            badgeClassName: "bg-[#F7E6E1] text-[#A25743]",
+            actionLabel: "Retry training",
+          }
+        : {
+            title: "Not trained yet",
+            description: "Add a website URL or upload documents to train your chatbot.",
+            badgeLabel: "Pending",
+            badgeClassName: "bg-[#F2F0EB] text-[#8C9A84]",
+            actionLabel: "Start training",
+          };
 
   return (
     <div className="py-8 md:py-12">
@@ -57,14 +95,16 @@ export default async function DashboardPage() {
                 Training Status
               </p>
               <p className="font-sans text-lg font-semibold text-[#2D3A31]">
-                Not trained yet
+                {trainingContent.title}
               </p>
               <p className="font-sans text-sm text-[#8C9A84] mt-1">
-                Add a website URL or upload documents to train your chatbot.
+                {trainingContent.description}
               </p>
             </div>
-            <span className="flex-shrink-0 inline-flex items-center px-3 py-1 rounded-full text-xs font-sans font-medium uppercase tracking-widest bg-[#F2F0EB] text-[#8C9A84]">
-              Pending
+            <span
+              className={`flex-shrink-0 inline-flex items-center px-3 py-1 rounded-full text-xs font-sans font-medium uppercase tracking-widest ${trainingContent.badgeClassName}`}
+            >
+              {trainingContent.badgeLabel}
             </span>
           </div>
           <div className="mt-4 pt-4 border-t border-[#E6E2DA]">
@@ -72,7 +112,7 @@ export default async function DashboardPage() {
               href="/dashboard/chatbot/setup"
               className="inline-flex items-center gap-2 font-sans text-sm font-medium text-[#2D3A31] hover:text-[#3d5245] transition-colors duration-200"
             >
-              Start training
+              {trainingContent.actionLabel}
               <ArrowRight size={16} strokeWidth={1.5} />
             </Link>
           </div>

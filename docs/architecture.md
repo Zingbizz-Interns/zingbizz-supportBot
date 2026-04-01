@@ -12,7 +12,7 @@ Embeddable widget (public/widget.js)
   -> public streaming chat endpoint
 
 External services
-  -> Cohere for embeddings
+  -> OpenAI for embeddings
   -> xAI for production chat generation
   -> NVIDIA NIM for test-mode chat generation
   -> Vercel Blob for uploaded files
@@ -42,7 +42,7 @@ Training starts in `app/api/train/route.ts` and then hands off to `lib/ingestion
    - PDF via pdf-parse v2 class API
    - text and markdown via utf-8 decode
 6. Chunk each page or file with RecursiveCharacterTextSplitter.
-7. Embed each chunk batch through Cohere embed-v4.0.
+7. Embed each chunk batch through OpenAI text-embedding-3-small.
 8. Insert chunk documents into Postgres in small batches.
 9. Mark chatbot ready on success or error on failure.
 ```
@@ -61,7 +61,7 @@ Important implementation details:
 ```text
 1. /api/chat validates chatbotId, message, and history.
 2. Upstash rate limiting is applied per chatbotId.
-3. The user message is embedded with Cohere using search_query inputType.
+3. The user message is embedded with OpenAI text-embedding-3-small.
 4. Top 5 chunks are fetched from documents using pgvector cosine distance.
 5. If similarity is >= 0.75:
    - context chunks are included

@@ -141,7 +141,7 @@ chat-bot/
 | `app/api/train/route.ts` | Validates training input, fetches Blob files, and starts ingestion |
 | `app/api/agents/route.ts` | Fetches or creates the single chatbot for the logged-in user |
 | `lib/ai/rag.ts` | Retrieval, prompt construction, source extraction, and query logging |
-| `lib/ai/embed.ts` | Cohere embedding integration and dimension validation |
+| `lib/ai/embed.ts` | OpenAI embedding integration and dimension validation |
 | `lib/ingestion/pipeline.ts` | Chunk embedding and incremental document insertion |
 | `lib/db/schema.ts` | Source of truth for tables and types |
 | `proxy.ts` | Redirects unauthenticated users away from `/dashboard` |

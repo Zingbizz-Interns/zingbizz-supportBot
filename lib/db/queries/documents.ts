@@ -1,4 +1,4 @@
-import { sql } from "drizzle-orm";
+import { sql, eq } from "drizzle-orm";
 import { db } from "../client";
 import { documents, type NewDocument, type DocumentMetadata } from "../schema";
 
@@ -36,6 +36,10 @@ export async function searchDocuments(
   }));
 }
 
+export async function deleteAllDocumentsByChatbot(chatbotId: string): Promise<void> {
+  await db.delete(documents).where(eq(documents.chatbotId, chatbotId));
+}
+
 export async function deleteDocumentsBySource(
   chatbotId: string,
   sourceKey: string
@@ -71,12 +75,15 @@ export async function getDocumentSources(
     ORDER BY MIN(created_at) DESC
   `);
 
-  return result.rows as Array<{
+  return (result.rows as Array<{
     url: string | null;
     title: string | null;
     source_type: string;
     file_name: string | null;
-    chunk_count: number;
+    chunk_count: string | number;
     created_at: string | null;
-  }>;
+  }>).map((row) => ({
+    ...row,
+    chunk_count: Number(row.chunk_count),
+  }));
 }

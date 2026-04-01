@@ -1,0 +1,1 @@
+import { db } from "./lib/db"; import { chatbots } from "./lib/db/schema"; async function run() { const bots = await db.select().from(chatbots).limit(1); if (bots.length > 0) { console.log(bots[0].id); } else { console.log("NO_BOTS"); } process.exit(0); } run().catch(console.error);

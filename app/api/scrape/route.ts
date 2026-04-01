@@ -1,5 +1,7 @@
 import { auth } from "@/lib/auth";
 import { scrapeWebsite } from "@/lib/ingestion/scraper";
+import { parseBody } from "@/lib/validation/parse";
+import { scrapeRequestSchema } from "@/lib/validation/schemas";
 
 export async function POST(request: Request) {
   const session = await auth();
@@ -14,26 +16,10 @@ export async function POST(request: Request) {
     return Response.json({ error: "Invalid JSON body" }, { status: 400 });
   }
 
-  const { url } = body as { url?: string };
+  const parsed = parseBody(scrapeRequestSchema, body);
+  if (!parsed.ok) return parsed.response;
 
-  if (!url || typeof url !== "string") {
-    return Response.json({ error: "url is required" }, { status: 400 });
-  }
-
-  // Validate URL format
-  let parsedUrl: URL;
-  try {
-    parsedUrl = new URL(url);
-  } catch {
-    return Response.json({ error: "Invalid URL format" }, { status: 400 });
-  }
-
-  if (parsedUrl.protocol !== "http:" && parsedUrl.protocol !== "https:") {
-    return Response.json(
-      { error: "URL must use http or https protocol" },
-      { status: 400 }
-    );
-  }
+  const { url } = parsed.data;
 
   try {
     const pages = await scrapeWebsite(url, 10);

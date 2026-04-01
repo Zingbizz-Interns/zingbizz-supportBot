@@ -1,22 +1,13 @@
 import { auth } from "@/lib/auth";
-import {
-  getChatbotById,
-  updateChatbot,
-  deleteChatbot,
-} from "@/lib/db/queries/chatbots";
+import { getChatbotById, updateChatbot, deleteChatbot } from "@/lib/db/queries/chatbots";
+import { parseBody } from "@/lib/validation/parse";
+import { updateChatbotSchema } from "@/lib/validation/schemas";
 
 async function getAuthorizedChatbot(id: string, userId: string) {
   const chatbot = await getChatbotById(id);
   if (!chatbot) return { chatbot: null, error: "Not found", status: 404 };
   if (chatbot.userId !== userId) return { chatbot: null, error: "Forbidden", status: 403 };
   return { chatbot, error: null, status: 200 };
-}
-
-interface UpdateChatbotBody {
-  name?: string;
-  welcomeMessage?: string;
-  fallbackMessage?: string;
-  brandColor?: string;
 }
 
 export async function PATCH(
@@ -32,30 +23,25 @@ export async function PATCH(
   const { chatbot, error, status } = await getAuthorizedChatbot(id, session.user.id);
   if (!chatbot) return Response.json({ error }, { status });
 
-  let body: UpdateChatbotBody = {};
+  let body: unknown;
   try {
     body = await request.json();
   } catch {
     return Response.json({ error: "Invalid JSON body" }, { status: 400 });
   }
 
-  const { name, welcomeMessage, fallbackMessage, brandColor } = body;
+  const parsed = parseBody(updateChatbotSchema, body);
+  if (!parsed.ok) return parsed.response;
 
-  if (name !== undefined && (typeof name !== "string" || name.trim().length === 0)) {
-    return Response.json({ error: "name must be a non-empty string" }, { status: 400 });
-  }
-
-  const updates: Parameters<typeof updateChatbot>[1] = {};
-  if (name !== undefined) updates.name = name.trim();
-  if (welcomeMessage !== undefined) updates.welcomeMessage = welcomeMessage;
-  if (fallbackMessage !== undefined) updates.fallbackMessage = fallbackMessage;
-  if (brandColor !== undefined) updates.brandColor = brandColor;
-
-  if (Object.keys(updates).length === 0) {
-    return Response.json({ error: "No valid fields to update" }, { status: 400 });
-  }
+  const { name, welcomeMessage, fallbackMessage, brandColor } = parsed.data;
 
   try {
+    const updates: Parameters<typeof updateChatbot>[1] = {};
+    if (name !== undefined) updates.name = name;
+    if (welcomeMessage !== undefined) updates.welcomeMessage = welcomeMessage;
+    if (fallbackMessage !== undefined) updates.fallbackMessage = fallbackMessage;
+    if (brandColor !== undefined) updates.brandColor = brandColor;
+
     const updated = await updateChatbot(id, updates);
     return Response.json({ chatbot: updated });
   } catch (err) {

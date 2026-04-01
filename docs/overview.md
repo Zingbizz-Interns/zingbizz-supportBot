@@ -42,7 +42,7 @@ This repository contains a hosted support-chatbot SaaS built with Next.js 16. A 
 
 ## AI Behavior
 
-- Document and query embeddings come from Cohere
+- Document and query embeddings use OpenAI text-embedding-3-small (1536 dims)
 - Production chat responses use xAI Grok through the Vercel AI SDK
 - Test mode can swap chat generation to NVIDIA NIM via `AI_PROVIDER_MODE=test`
 - When retrieval confidence is low, the app still calls the chat model, but the system prompt forces the configured fallback message for factual questions and allows simple greetings
