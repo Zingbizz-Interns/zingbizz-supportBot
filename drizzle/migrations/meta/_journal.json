@@ -29,6 +29,13 @@
       "when": 1774966000000,
       "tag": "0003_embedding_dimension_1536",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1775010000000,
+      "tag": "0006_training_jobs",
+      "breakpoints": true
     }
   ]
 }

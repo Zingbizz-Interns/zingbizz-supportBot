@@ -47,12 +47,14 @@ export async function ragQuery({
     answered,
   }).catch(console.error);
 
-  // 6. If below threshold, we will still pass to LLM but with empty context
-  // This allows the LLM to handle basic greetings politely instead of abruptly failing.
+  // 6. Always inject retrieved context when results exist.
+  // `answered` only controls the queries log — not context injection.
+  // Withholding context on low scores caused the LLM to receive an empty prompt
+  // and respond with the fallback even when relevant documents were retrieved.
   let contextChunks = "";
   let sources: Array<{ label: string; url?: string }> = [];
 
-  if (answered && results.length > 0) {
+  if (results.length > 0) {
     contextChunks = results
       .map((r, i) => `[Context ${i + 1}]\n${r.content}`)
       .join("\n\n---\n\n");

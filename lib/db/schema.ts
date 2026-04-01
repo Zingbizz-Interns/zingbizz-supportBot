@@ -4,6 +4,7 @@ import {
   text,
   timestamp,
   boolean,
+  integer,
   jsonb,
   index,
   uniqueIndex,
@@ -115,6 +116,39 @@ export const documents = pgTable(
   })
 );
 
+// ─── Training Jobs ────────────────────────────────────────────────────────────
+
+export const trainingJobs = pgTable(
+  "training_jobs",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    chatbotId: uuid("chatbot_id")
+      .notNull()
+      .references(() => chatbots.id, { onDelete: "cascade" }),
+    status: text("status").notNull().default("queued"),
+    payload: jsonb("payload").$type<TrainingJobPayload>().notNull(),
+    attempts: integer("attempts").notNull().default(0),
+    maxAttempts: integer("max_attempts").notNull().default(2),
+    lastError: text("last_error"),
+    availableAt: timestamp("available_at").defaultNow().notNull(),
+    lockedBy: text("locked_by"),
+    lockedAt: timestamp("locked_at"),
+    leaseExpiresAt: timestamp("lease_expires_at"),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    startedAt: timestamp("started_at"),
+    finishedAt: timestamp("finished_at"),
+    updatedAt: timestamp("updated_at").defaultNow().notNull().$onUpdateFn(() => new Date()),
+  },
+  (table) => ({
+    chatbotIdIdx: index("training_jobs_chatbot_id_idx").on(table.chatbotId),
+    statusCreatedAtIdx: index("training_jobs_status_created_at_idx").on(table.status, table.createdAt),
+    statusCheck: check(
+      "training_jobs_status_check",
+      sql`${table.status} IN ('queued', 'running', 'completed', 'failed')`
+    ),
+  })
+);
+
 // ─── Queries (insights) ───────────────────────────────────────────────────────
 
 export const queries = pgTable(
@@ -147,12 +181,20 @@ export const accountsRelations = relations(accounts, ({ one }) => ({
 export const chatbotsRelations = relations(chatbots, ({ one, many }) => ({
   user: one(users, { fields: [chatbots.userId], references: [users.id] }),
   documents: many(documents),
+  trainingJobs: many(trainingJobs),
   queries: many(queries),
 }));
 
 export const documentsRelations = relations(documents, ({ one }) => ({
   chatbot: one(chatbots, {
     fields: [documents.chatbotId],
+    references: [chatbots.id],
+  }),
+}));
+
+export const trainingJobsRelations = relations(trainingJobs, ({ one }) => ({
+  chatbot: one(chatbots, {
+    fields: [trainingJobs.chatbotId],
     references: [chatbots.id],
   }),
 }));
@@ -174,6 +216,8 @@ export type Chatbot = typeof chatbots.$inferSelect;
 export type NewChatbot = typeof chatbots.$inferInsert;
 export type Document = typeof documents.$inferSelect;
 export type NewDocument = typeof documents.$inferInsert;
+export type TrainingJob = typeof trainingJobs.$inferSelect;
+export type NewTrainingJob = typeof trainingJobs.$inferInsert;
 export type Query = typeof queries.$inferSelect;
 export type NewQuery = typeof queries.$inferInsert;
 
@@ -183,4 +227,13 @@ export type DocumentMetadata = {
   source_type: "scrape" | "upload";
   file_name?: string;
   blob_url?: string; // Full Vercel Blob URL — upload sources only, used for cleanup on deletion
+};
+
+export type TrainingJobPayload = {
+  pages: Array<{
+    url: string;
+    title: string;
+    content: string;
+  }>;
+  fileKeys: string[];
 };

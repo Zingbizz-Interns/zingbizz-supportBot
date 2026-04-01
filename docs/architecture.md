@@ -31,28 +31,30 @@ Both public endpoints send permissive CORS headers.
 
 ## Ingestion Flow
 
-Training starts in `app/api/train/route.ts` and then hands off to `lib/ingestion/pipeline.ts`.
+Training starts in `app/api/train/route.ts`, which enqueues a durable job, and `lib/training-queue.ts` drains that queue into `lib/ingestion/pipeline.ts`.
 
 ```text
 1. Authenticate the user and confirm chatbot ownership.
 2. Validate page payloads and Blob URLs.
-3. Mark chatbot as training.
-4. Resolve private Vercel Blob URLs through head().
-5. Parse uploaded content:
+3. Enqueue a `training_jobs` row and mark the chatbot as training.
+4. Claim the next available job with a short lease.
+5. Resolve private Vercel Blob URLs through `get()`.
+6. Parse uploaded content:
    - PDF via pdf-parse v2 class API
    - text and markdown via utf-8 decode
-6. Chunk each page or file with RecursiveCharacterTextSplitter.
-7. Embed each chunk batch through OpenAI text-embedding-3-small.
-8. Insert chunk documents into Postgres in small batches.
-9. Mark chatbot ready on success or error on failure.
+7. Chunk each page or file with RecursiveCharacterTextSplitter.
+8. Embed each chunk batch through OpenAI text-embedding-3-small.
+9. Insert chunk documents into Postgres in small batches.
+10. Mark the job completed and the chatbot ready on success, or retry/fail the job on error.
 ```
 
 Important implementation details:
 
-- Training is fire-and-forget from the request handler.
-- Work is done in-process, not on a queue or background worker.
+- Jobs are durable because the source payload is stored in Postgres.
+- The worker uses a renewable lease so a crashed process can release work for retry.
 - Upload fetches are guarded to `https://*.vercel-storage.com`.
-- Chunking defaults to 3000 characters with 400 overlap.
+- Queue processing is kicked on enqueue and on training-status reads, so interrupted jobs resume when the dashboard polls again.
+- Chunking defaults to 1000 characters with 80 overlap.
 
 ## Retrieval and Chat Flow
 
@@ -105,10 +107,10 @@ idle -> training -> ready
                  -> error
 ```
 
-The app also includes stale training recovery:
+The app also includes training-state recovery:
 
-- `lib/training-status.ts` records server start time.
-- If a chatbot is still marked `training` after a server restart, reads through `/api/agents` or `/api/agents/[id]/status` convert it to `error`.
+- `training_jobs` is the durable source of truth for queued and running work.
+- Reads through `/api/agents` or `/api/agents/[id]/status` reconcile `chatbots.training_status` against the latest job state and kick the queue worker if needed.
 
 ## Authentication Architecture
 

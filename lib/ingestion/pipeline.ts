@@ -21,9 +21,11 @@ const EMBEDDING_BATCH_SIZE = 25;
 async function ingestSourceChunks(
   chatbotId: string,
   chunks: Array<{ content: string; index: number }>,
-  metadata: NewDocument["metadata"]
+  metadata: NewDocument["metadata"],
+  onProgress?: () => Promise<void>
 ): Promise<void> {
   for (let i = 0; i < chunks.length; i += EMBEDDING_BATCH_SIZE) {
+    await onProgress?.();
     const chunkBatch = chunks.slice(i, i + EMBEDDING_BATCH_SIZE);
     const texts = chunkBatch.map((chunk) => chunk.content);
     const embeddings = await embedTexts(texts);
@@ -42,16 +44,19 @@ async function ingestSourceChunks(
 export async function runIngestionPipeline(
   chatbotId: string,
   pages: IngestionPage[],
-  files: IngestionFile[] = []
+  files: IngestionFile[] = [],
+  onProgress?: () => Promise<void>
 ): Promise<void> {
   try {
     await updateChatbot(chatbotId, { trainingStatus: "training" });
+    await onProgress?.();
 
     // Clear all existing documents so re-training fully replaces prior content
     await deleteAllDocumentsByChatbot(chatbotId);
 
     // Process pages
     for (const page of pages) {
+      await onProgress?.();
       const chunks = await chunkText(page.content);
       if (chunks.length === 0) continue;
 
@@ -59,11 +64,12 @@ export async function runIngestionPipeline(
         url: page.url,
         title: page.title,
         source_type: "scrape" as const,
-      });
+      }, onProgress);
     }
 
     // Process uploaded files
     for (const file of files) {
+      await onProgress?.();
       const chunks = await chunkText(file.content);
       if (chunks.length === 0) continue;
 
@@ -72,7 +78,7 @@ export async function runIngestionPipeline(
         source_type: "upload" as const,
         file_name: file.fileName,
         ...(file.blobUrl ? { blob_url: file.blobUrl } : {}),
-      });
+      }, onProgress);
     }
     await updateChatbot(chatbotId, { trainingStatus: "ready" });
   } catch (error) {
@@ -81,4 +87,3 @@ export async function runIngestionPipeline(
     throw error;
   }
 }
-

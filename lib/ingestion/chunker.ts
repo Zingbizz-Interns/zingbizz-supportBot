@@ -5,9 +5,9 @@ export interface TextChunk {
   index: number;
 }
 
-const CHUNK_SIZE = 2000;
-const CHUNK_OVERLAP = 400;
-const MIN_CHUNK_LENGTH = 50;
+const CHUNK_SIZE = 1000;
+const CHUNK_OVERLAP = 80;
+const MIN_CHUNK_LENGTH = 20;
 
 const splitter = new RecursiveCharacterTextSplitter({
   chunkSize: CHUNK_SIZE,

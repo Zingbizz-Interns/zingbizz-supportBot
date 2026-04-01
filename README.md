@@ -7,7 +7,7 @@ A Next.js 16 SaaS app for creating a single embeddable support chatbot per accou
 - Marketing site, auth flow, and protected dashboard
 - Credentials auth plus optional Google and GitHub OAuth
 - Website scraping with Cheerio and document uploads through Vercel Blob
-- In-process training pipeline that chunks content, embeds it, and stores vectors in Neon Postgres
+- Durable Postgres-backed training queue that chunks content, embeds it, and stores vectors in Neon Postgres
 - Public widget script at `public/widget.js` backed by `/api/chat`
 - Basic insights based on logged questions and unanswered queries
 
@@ -57,7 +57,8 @@ npm run build:widget
 
 ## Notes
 
-- Training runs in-process from `/api/train`. If the server restarts during training, stale `training` chatbots are recovered to `error`.
+- `/api/train` now enqueues a durable training job in Postgres, and a leased worker drains the queue.
+- If the app restarts mid-training, the queued job survives and is retried when the worker is kicked again.
 - The embeddable widget only initializes when `/api/agents/:id/config` reports `isReady: true`.
 - `public/widget.js` is generated from `widget-src/` with `npm run build:widget`.
 
