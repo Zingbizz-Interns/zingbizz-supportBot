@@ -25,14 +25,14 @@ An AI-powered chatbot SaaS MVP. Small business owners connect their website URL 
 ## Tech Stack (Quick Reference)
 
 - **Framework**: Next.js 16 App Router
-- **Auth**: NextAuth.js v5 (Credentials provider, JWT sessions)
+- **Auth**: NextAuth.js v5 (Credentials + optional Google/GitHub OAuth, JWT sessions)
 - **Database**: Neon (Postgres + pgvector) + Drizzle ORM
-- **LLM**: xAI Grok via Vercel AI SDK (`@ai-sdk/xai`)
+- **LLM**: OpenAI chat models via Vercel AI SDK (`@ai-sdk/openai`)
 - **Embeddings**: OpenAI `text-embedding-3-small` via `@ai-sdk/openai` (1536 dims)
-- **Streaming**: Vercel AI SDK `streamText()` + `useChat()` React hook
+- **Streaming**: Vercel AI SDK `streamText()` + custom widget stream handling
 - **File Storage**: Vercel Blob
 - **Rate Limiting**: Upstash Redis (`@upstash/ratelimit`)
-- **Scraping**: Cheerio + node-fetch (NOT Playwright)
+- **Scraping**: Custom `fetch` + Cheerio scraper with boilerplate cleanup (NOT Playwright)
 - **Styling**: Tailwind CSS v4
 - **Icons**: Lucide React (`strokeWidth={1.5}` always)
 - **Fonts**: Playfair Display (headings) + Source Sans 3 (body/UI)
@@ -67,6 +67,7 @@ An AI-powered chatbot SaaS MVP. Small business owners connect their website URL 
 1. **Always include the paper texture overlay** in `app/layout.tsx` — it's the defining visual element of the design. See `docs/design-system.md` for the exact SVG code.
 
 2. **Always pass the last 3–5 message pairs** from the widget when calling `/api/chat` — chat context is maintained client-side only (not stored in DB).
+   Filter out empty assistant turns before sending history.
 
 3. **Always validate `chatbotId` ownership** in protected API routes — check that the chatbot belongs to the authenticated user.
 
@@ -90,7 +91,8 @@ An AI-powered chatbot SaaS MVP. Small business owners connect their website URL 
 ORDER BY embedding <=> $queryEmbedding LIMIT 5
 ```
 
-**Fallback threshold**: If `1 - (embedding <=> queryEmbedding) < 0.75` → use `chatbot.fallbackMessage`.
+**Fallback threshold**: `answered=false` is logged if `1 - (embedding <=> queryEmbedding) < 0.75`.
+The app still injects retrieved context when results exist; fallback behavior is prompt-driven rather than a hard API short-circuit.
 
 ---
 
@@ -101,6 +103,7 @@ ORDER BY embedding <=> $queryEmbedding LIMIT 5
 - Protected routes: all `(dashboard)` group routes
 - Public routes: `/api/chat`, `/api/agents/[id]/config`, `public/widget.js`
 - `proxy.ts` handles route protection automatically
+- Google and GitHub OAuth providers are enabled only when their env vars are present
 
 ---
 
@@ -110,14 +113,19 @@ The core logic lives in `lib/ai/rag.ts`. The flow:
 
 ```
 widget message → embed query → vector search (top-5) → check similarity threshold
-  → if score < 0.75: return fallback message
-  → if score >= 0.75: build prompt (system + context + history) → streamText(grok)
-  → stream response → deduplicate sources → log to queries table
+  → sanitize noisy retrieved chunks + dedupe sources + filter empty history entries
+  → build prompt (system + context + history) → streamText(OpenAI)
+  → guard empty streams for the widget → log to queries table
 ```
 
 **Ingestion pipeline** is in `lib/ingestion/pipeline.ts`:
 ```
-URL/file → scrape/parse → chunk (500–1000 tokens, 100 overlap) → embed → store in documents
+URL/file → scrape/parse → chunk (~1000 chars, 80 overlap) → embed → store in documents
+```
+
+**Training runtime** is durable:
+```
+/api/train → enqueue training_jobs row in Postgres → leased in-process worker drains queue
 ```
 
 ---
@@ -129,6 +137,7 @@ The embeddable widget is a **separate build target**:
 - Output: `public/widget.js` (single file, ~20KB target)
 - Build: `esbuild` (no React — vanilla JS only for minimal footprint)
 - The widget maintains message history in memory (array), never in localStorage or server
+- The widget treats zero-token chat streams as an error state instead of leaving a blank assistant bubble
 
 Widget calls two public API endpoints:
 1. `GET /api/agents/{id}/config` — on load, to get name/color/welcome message
@@ -172,8 +181,8 @@ Required vars (see `.env.example`):
 DATABASE_URL                 Neon pooled connection
 DATABASE_URL_UNPOOLED        Neon direct (for drizzle-kit migrations)
 AUTH_SECRET                  NextAuth secret
-OPENAI_API_KEY               For embeddings (text-embedding-3-small)
-XAI_API_KEY                  For xAI Grok LLM
+OPENAI_API_KEY               For embeddings and chat
+OPENAI_CHAT_MODEL            Optional; defaults to gpt-4o-mini
 BLOB_READ_WRITE_TOKEN        Vercel Blob
 UPSTASH_REDIS_REST_URL       Upstash Redis
 UPSTASH_REDIS_REST_TOKEN     Upstash Redis
@@ -183,22 +192,11 @@ UPSTASH_REDIS_REST_TOKEN     Upstash Redis
 
 ## MVP Constraints
 
-- **1 chatbot per user** — enforced at application layer, not DB constraint
+- **1 chatbot per user** — enforced in both application logic and the database
 - **No billing** — Stripe deferred to v2
-- **No OAuth** — credentials only (email + password)
+- **OAuth is optional** — credentials always, Google/GitHub when configured
 - **No chat history persistence** — history lives in widget memory only
 - **Max 10 pages scraped** per training run
 - **Max 10MB** per uploaded file
 
 ---
-
-## What's NOT Built Yet (Future v2)
-
-- Multiple chatbots per account
-- Stripe billing / subscription tiers
-- OAuth providers (Google, GitHub)
-- Human handoff (WhatsApp/email escalation)
-- Shopify / WordPress plugins
-- Full conversation history dashboard
-- Domain allowlisting for the widget
-- Custom LLM fine-tuning

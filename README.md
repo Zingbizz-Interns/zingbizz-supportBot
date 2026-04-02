@@ -30,7 +30,7 @@ Set these before running the app:
 - `BLOB_READ_WRITE_TOKEN`
 - `UPSTASH_REDIS_REST_URL`
 - `UPSTASH_REDIS_REST_TOKEN`
-- `COHERE_API_KEY`
+- `OPENAI_API_KEY`
 - `OPENAI_CHAT_MODEL` (optional, defaults to `gpt-4o-mini`)
 
 Optional:
@@ -56,6 +56,8 @@ npm run build:widget
 - `/api/train` now enqueues a durable training job in Postgres, and a leased worker drains the queue.
 - If the app restarts mid-training, the queued job survives and is retried when the worker is kicked again.
 - The embeddable widget only initializes when `/api/agents/:id/config` reports `isReady: true`.
+- Retrieved chunks are sanitized at query time to reduce noisy footer/contact boilerplate in prompts.
+- The widget now guards against zero-token chat streams so blank assistant bubbles do not get saved into history.
 - `public/widget.js` is generated from `widget-src/` with `npm run build:widget`.
 
 ## Documentation
