@@ -45,14 +45,17 @@ export async function runIngestionPipeline(
   chatbotId: string,
   pages: IngestionPage[],
   files: IngestionFile[] = [],
+  mode: "replace" | "append" = "replace",
   onProgress?: () => Promise<void>
 ): Promise<void> {
   try {
     await updateChatbot(chatbotId, { trainingStatus: "training" });
     await onProgress?.();
 
-    // Clear all existing documents so re-training fully replaces prior content
-    await deleteAllDocumentsByChatbot(chatbotId);
+    if (mode === "replace") {
+      // Clear all existing documents so re-training fully replaces prior content
+      await deleteAllDocumentsByChatbot(chatbotId);
+    }
 
     // Process pages
     for (const page of pages) {

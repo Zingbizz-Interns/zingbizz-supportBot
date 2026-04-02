@@ -6,6 +6,7 @@ import { getChatbotById } from "../db/queries/chatbots";
 import type { ModelMessage } from "ai";
 import type { DocumentMetadata } from "../db/schema";
 
+const SIMILARITY_THRESHOLD = 0.75;
 const MAX_CONTEXT_RESULTS = 4;
 const MAX_CONTEXT_CHARS_PER_CHUNK = 900;
 
@@ -65,8 +66,11 @@ export async function ragQuery({
   // 3. Vector similarity search
   const results = await searchDocuments(chatbotId, queryEmbedding, 5);
 
-  // 4. Mark as answered whenever documents are retrieved
-  const answered = results.length > 0;
+  const cleanedResults = getContextResults(results);
+
+  // 4. Keep analytics meaningful by requiring at least one strong match,
+  // while still allowing lower-confidence retrieved context to help generation.
+  const answered = cleanedResults.some((result) => result.similarity >= SIMILARITY_THRESHOLD);
 
   // 5. Log query (fire-and-forget, don't await)
   logQuery({
@@ -85,9 +89,7 @@ export async function ragQuery({
     .filter((entry) => entry.content.trim().length > 0)
     .slice(-10);
 
-  if (results.length > 0) {
-    const cleanedResults = getContextResults(results);
-
+  if (cleanedResults.length > 0) {
     contextChunks = cleanedResults
       .map((r, i) => `[Context ${i + 1}]\n${r.content}`)
       .join("\n\n---\n\n");

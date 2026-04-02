@@ -25,6 +25,9 @@ function isTrainingJobPayload(value: unknown): value is TrainingJobPayload {
   if (!value || typeof value !== "object") return false;
 
   const payload = value as Record<string, unknown>;
+  if (payload.mode !== undefined && payload.mode !== "replace" && payload.mode !== "append") {
+    return false;
+  }
   if (!Array.isArray(payload.pages) || !Array.isArray(payload.fileKeys)) return false;
 
   return payload.pages.every((page) => {
@@ -106,6 +109,7 @@ async function processTrainingJob(job: TrainingJob, workerId: string): Promise<v
     job.chatbotId,
     pages,
     files,
+    payload.mode ?? "replace",
     async () => renewTrainingJobLease(job.id, workerId)
   );
 

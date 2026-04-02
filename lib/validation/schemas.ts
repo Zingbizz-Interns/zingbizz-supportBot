@@ -67,6 +67,7 @@ const trainingPageSchema = z.object({
 export const trainRequestSchema = z
   .object({
     chatbotId: z.string().min(1, "chatbotId is required"),
+    mode: z.enum(["replace", "append"]).optional().default("replace"),
     pages: z
       .array(trainingPageSchema)
       .max(10, "You can train with up to 10 scraped pages at a time.")

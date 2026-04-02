@@ -33,7 +33,7 @@ export async function POST(request: Request) {
   const parsed = parseBody(trainRequestSchema, body);
   if (!parsed.ok) return parsed.response;
 
-  const { chatbotId, pages, fileKeys } = parsed.data;
+  const { chatbotId, mode, pages, fileKeys } = parsed.data;
 
   // Auth + ownership check
   const chatbot = await getChatbotById(chatbotId);
@@ -70,6 +70,7 @@ export async function POST(request: Request) {
 
   try {
     await enqueueTrainingJob(chatbotId, {
+      mode,
       pages: sanitizedPages,
       fileKeys: sanitizedFileKeys,
     });

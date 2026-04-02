@@ -280,6 +280,7 @@ export default function ChatbotSetupPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           chatbotId: currentChatbot.id,
+          mode: "replace",
           pages: selectedPagesData,
           fileKeys,
         }),

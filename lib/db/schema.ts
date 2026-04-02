@@ -230,6 +230,7 @@ export type DocumentMetadata = {
 };
 
 export type TrainingJobPayload = {
+  mode?: "replace" | "append";
   pages: Array<{
     url: string;
     title: string;

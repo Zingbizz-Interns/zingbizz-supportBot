@@ -192,7 +192,7 @@ export default function SourcesPage() {
       const res = await fetch("/api/train", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ chatbotId, pages, fileKeys: [] }),
+        body: JSON.stringify({ chatbotId, mode: "append", pages, fileKeys: [] }),
       });
       if (!res.ok) {
         const body = await res.json().catch(() => ({}));
@@ -230,7 +230,7 @@ export default function SourcesPage() {
       const trainRes = await fetch("/api/train", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ chatbotId, pages: [], fileKeys: [uploadData.key] }),
+        body: JSON.stringify({ chatbotId, mode: "append", pages: [], fileKeys: [uploadData.key] }),
       });
       if (!trainRes.ok) {
         const body = await trainRes.json().catch(() => ({}));

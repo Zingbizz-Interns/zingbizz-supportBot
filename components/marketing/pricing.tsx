@@ -53,7 +53,7 @@ export function Pricing() {
             </ul>
 
             <Link
-              href="/register"
+              href="/signup"
               className="block w-full text-center rounded-full bg-white text-[#2D3A31] font-sans text-sm uppercase tracking-widest px-8 py-3 hover:bg-[#F2F0EB] transition-colors duration-300"
             >
               Get started free

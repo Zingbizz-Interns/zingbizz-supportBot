@@ -71,16 +71,32 @@ export async function getDailyQuestionCounts(
   days = 7
 ): Promise<Array<{ date: string; count: number; answered: number }>> {
   const result = await db.execute(sql`
+    WITH date_series AS (
+      SELECT generate_series(
+        CURRENT_DATE - (${days} - 1) * INTERVAL '1 day',
+        CURRENT_DATE,
+        INTERVAL '1 day'
+      )::date AS date
+    ),
+    counts AS (
+      SELECT
+        DATE(created_at) AS date,
+        COUNT(*)::int AS count,
+        COUNT(*) FILTER (WHERE answered = true)::int AS answered
+      FROM queries
+      WHERE
+        chatbot_id = ${chatbotId}
+        AND created_at >= CURRENT_DATE - (${days} - 1) * INTERVAL '1 day'
+        AND created_at < CURRENT_DATE + INTERVAL '1 day'
+      GROUP BY DATE(created_at)
+    )
     SELECT
-      DATE(created_at)::text AS date,
-      COUNT(*)::int AS count,
-      COUNT(*) FILTER (WHERE answered = true)::int AS answered
-    FROM queries
-    WHERE
-      chatbot_id = ${chatbotId}
-      AND created_at >= NOW() - INTERVAL '1 day' * ${days}
-    GROUP BY DATE(created_at)
-    ORDER BY DATE(created_at) ASC
+      date_series.date::text AS date,
+      COALESCE(counts.count, 0)::int AS count,
+      COALESCE(counts.answered, 0)::int AS answered
+    FROM date_series
+    LEFT JOIN counts ON counts.date = date_series.date
+    ORDER BY date_series.date ASC
   `);
 
   return (result.rows as Array<{ date: string; count: number; answered: number }>).map((row) => ({
