@@ -11,11 +11,27 @@ type PDFParseInstance = {
 type PDFParseConstructor = new (options: { data: Buffer | Uint8Array }) => PDFParseInstance;
 
 function getPDFParseConstructor(): PDFParseConstructor {
+  ensurePdfRuntimeGlobals();
+
   const pdfParseModule = require("pdf-parse") as {
     PDFParse: PDFParseConstructor;
   };
 
   return pdfParseModule.PDFParse;
+}
+
+function ensurePdfRuntimeGlobals(): void {
+  const globalWithPdfRuntime = globalThis as typeof globalThis & {
+    DOMMatrix?: unknown;
+    ImageData?: unknown;
+    Path2D?: unknown;
+  };
+
+  if (globalWithPdfRuntime.DOMMatrix && globalWithPdfRuntime.ImageData && globalWithPdfRuntime.Path2D) {
+    return;
+  }
+
+  require("pdf-parse/worker");
 }
 
 function clampExtractedText(text: string): string {
