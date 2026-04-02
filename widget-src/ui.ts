@@ -49,7 +49,7 @@ export function initUI(chatbotConfig: ChatbotConfig, appBaseUrl: string): void {
             </svg>
           </button>
         </div>
-        <p id="cb-powered">Powered by ChatBot SaaS</p>
+        <p id="cb-powered">Powered by ZingDesk</p>
       </div>
     </div>
   `;

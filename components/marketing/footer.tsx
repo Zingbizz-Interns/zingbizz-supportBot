@@ -17,10 +17,10 @@ export function Footer() {
           href="/"
           className="font-[family-name:var(--font-serif)] text-lg font-bold text-[#2D3A31] hover:opacity-80 transition-opacity"
         >
-          ChatBot <em>SaaS</em>
+          ZingDesk
         </Link>
         <p className="font-[family-name:var(--font-sans)] text-sm text-[#2D3A31]/50">
-          &copy; {new Date().getFullYear()} ChatBot SaaS. All rights reserved.
+          &copy; {new Date().getFullYear()} ZingDesk. All rights reserved.
         </p>
         <nav aria-label="Footer Navigation" className="flex gap-6">
           <Link

@@ -11,8 +11,8 @@ function normalizeUrl(value?: string | null) {
 }
 
 export const siteConfig = {
-  name: "ChatBot SaaS",
-  shortName: "ChatBot SaaS",
+  name: "ZingDesk",
+  shortName: "ZingDesk",
   description:
     "Create an AI-powered chatbot trained on your website in minutes. Embed it anywhere with a single script tag.",
   keywords: [
@@ -23,7 +23,7 @@ export const siteConfig = {
     "SaaS support chatbot",
     "embeddable AI assistant",
   ],
-  creator: "ChatBot SaaS",
+  creator: "ZingDesk",
   twitterHandle: process.env.NEXT_PUBLIC_TWITTER_HANDLE || undefined,
   siteUrl: normalizeUrl(process.env.NEXT_PUBLIC_APP_URL || process.env.AUTH_URL),
   ogImagePath: "/opengraph-image",

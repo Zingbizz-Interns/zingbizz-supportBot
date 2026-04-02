@@ -165,7 +165,7 @@ async function fetchPage(url: string): Promise<{ html: string; finalUrl: string 
   try {
     const res = await fetch(url, {
       headers: {
-        "User-Agent": "Mozilla/5.0 (compatible; ChatBotSaaS/1.0; +https://chatbotsaas.com)",
+        "User-Agent": "Mozilla/5.0 (compatible; ZingDesk/1.0; +https://zingdesk.ai)",
         Accept: "text/html,application/xhtml+xml",
       },
       redirect: "follow",

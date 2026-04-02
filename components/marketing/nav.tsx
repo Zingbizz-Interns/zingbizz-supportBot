@@ -45,7 +45,7 @@ export function Nav() {
           href="/"
           className="font-[family-name:var(--font-serif)] text-xl font-bold text-[#2D3A31] tracking-tight hover:opacity-80 transition-opacity"
         >
-          ChatBot <em>SaaS</em>
+          ZingDesk
         </Link>
 
         {/* Desktop nav */}
@@ -103,7 +103,7 @@ export function Nav() {
           >
             <div className="flex justify-between items-center mb-12">
               <span className="font-[family-name:var(--font-serif)] text-xl font-bold text-[#2D3A31]">
-                ChatBot <em>SaaS</em>
+                ZingDesk
               </span>
               <button
                 onClick={() => setMobileOpen(false)}

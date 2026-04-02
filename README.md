@@ -1,4 +1,4 @@
-# ChatBot SaaS
+# ZingDesk
 
 A Next.js 16 SaaS app for creating a single embeddable support chatbot per account. Users can sign up, scrape their site, upload documents, train a RAG knowledge base, customize the assistant, and embed it on any website with one script tag.
 

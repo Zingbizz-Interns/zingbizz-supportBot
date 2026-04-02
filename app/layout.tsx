@@ -21,7 +21,7 @@ const sourceSans3 = Source_Sans_3({
 export const metadata: Metadata = {
   metadataBase: getMetadataBase(),
   title: {
-    default: "ChatBot SaaS - AI Support for Your Business",
+    default: "ZingDesk - AI Support for Your Business",
     template: `%s | ${siteConfig.name}`,
   },
   description: siteConfig.description,
@@ -40,7 +40,7 @@ export const metadata: Metadata = {
     canonical: "/",
   },
   openGraph: {
-    title: "ChatBot SaaS - AI Support for Your Business",
+    title: "ZingDesk - AI Support for Your Business",
     description: siteConfig.description,
     url: siteConfig.siteUrl,
     siteName: siteConfig.name,
@@ -57,7 +57,7 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "ChatBot SaaS - AI Support for Your Business",
+    title: "ZingDesk - AI Support for Your Business",
     description: siteConfig.description,
     images: [siteConfig.ogImagePath],
     creator: siteConfig.twitterHandle,

@@ -16,7 +16,7 @@ export const metadata: Metadata = {
     canonical: "/",
   },
   openGraph: {
-    title: "ChatBot SaaS - AI Support for Your Business",
+    title: "ZingDesk - AI Support for Your Business",
     description: siteConfig.description,
     url: "/",
     siteName: siteConfig.name,
@@ -32,7 +32,7 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "ChatBot SaaS - AI Support for Your Business",
+    title: "ZingDesk - AI Support for Your Business",
     description: siteConfig.description,
     images: [siteConfig.ogImagePath],
     creator: siteConfig.twitterHandle,

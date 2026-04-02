@@ -1,7 +1,7 @@
 import { ImageResponse } from "next/og";
 
 export const runtime = "edge";
-export const alt = "ChatBot SaaS social preview";
+export const alt = "ZingDesk social preview";
 export const size = {
   width: 1200,
   height: 630,
@@ -97,7 +97,7 @@ export default function TwitterImage() {
             <div style={{ fontSize: 42, fontWeight: 700 }}>&lt; 5 min</div>
           </div>
 
-          <div style={{ fontSize: 30, fontWeight: 600 }}>ChatBot SaaS</div>
+          <div style={{ fontSize: 30, fontWeight: 600 }}>ZingDesk</div>
         </div>
       </div>
     ),
