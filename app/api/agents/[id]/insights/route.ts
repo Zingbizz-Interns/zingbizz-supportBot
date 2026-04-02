@@ -3,6 +3,8 @@ import { getChatbotById } from "@/lib/db/queries/chatbots";
 import {
   getTopQuestions,
   getUnansweredQuestions,
+  getQueryStats,
+  getDailyQuestionCounts,
 } from "@/lib/db/queries/queries";
 
 export async function GET(
@@ -23,12 +25,14 @@ export async function GET(
       return Response.json({ error: "Forbidden" }, { status: 403 });
     }
 
-    const [topQuestions, unansweredQuestions] = await Promise.all([
+    const [topQuestions, unansweredQuestions, stats, dailyCounts] = await Promise.all([
       getTopQuestions(id, 20),
       getUnansweredQuestions(id, 20),
+      getQueryStats(id),
+      getDailyQuestionCounts(id, 7),
     ]);
 
-    return Response.json({ topQuestions, unansweredQuestions });
+    return Response.json({ topQuestions, unansweredQuestions, stats, dailyCounts });
   } catch (error) {
     const msg = error instanceof Error ? error.message : "Internal server error";
     return Response.json({ error: msg }, { status: 500 });
