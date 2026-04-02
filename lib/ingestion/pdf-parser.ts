@@ -8,30 +8,41 @@ type PDFParseInstance = {
   destroy(): Promise<void>;
 };
 
-type PDFParseConstructor = new (options: { data: Buffer | Uint8Array }) => PDFParseInstance;
+type PDFParseConstructor = {
+  new (options: { data: Buffer | Uint8Array }): PDFParseInstance;
+  setWorker(workerSrc?: string): string;
+};
+
+type PDFWorkerModule = {
+  getData(): string;
+};
 
 function getPDFParseConstructor(): PDFParseConstructor {
-  ensurePdfRuntimeGlobals();
+  const workerModule = ensurePdfRuntimeGlobals();
 
   const pdfParseModule = require("pdf-parse") as {
     PDFParse: PDFParseConstructor;
   };
 
+  pdfParseModule.PDFParse.setWorker(workerModule.getData());
   return pdfParseModule.PDFParse;
 }
 
-function ensurePdfRuntimeGlobals(): void {
+function ensurePdfRuntimeGlobals(): PDFWorkerModule {
   const globalWithPdfRuntime = globalThis as typeof globalThis & {
     DOMMatrix?: unknown;
     ImageData?: unknown;
     Path2D?: unknown;
+    __pdfWorkerModule?: PDFWorkerModule;
   };
 
-  if (globalWithPdfRuntime.DOMMatrix && globalWithPdfRuntime.ImageData && globalWithPdfRuntime.Path2D) {
-    return;
+  if (globalWithPdfRuntime.__pdfWorkerModule) {
+    return globalWithPdfRuntime.__pdfWorkerModule;
   }
 
-  require("pdf-parse/worker");
+  const workerModule = require("pdf-parse/worker") as PDFWorkerModule;
+  globalWithPdfRuntime.__pdfWorkerModule = workerModule;
+  return workerModule;
 }
 
 function clampExtractedText(text: string): string {
