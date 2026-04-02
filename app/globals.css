@@ -1,5 +1,35 @@
 @import "tailwindcss";
 
+@layer base {
+  :root {
+    --background: 249 248 244;
+    --foreground: 45 58 49;
+    --card: 255 255 255;
+    --card-foreground: 45 58 49;
+    --popover: 255 255 255;
+    --popover-foreground: 45 58 49;
+    --primary: 45 58 49;
+    --primary-foreground: 249 248 244;
+    --secondary: 242 240 235;
+    --secondary-foreground: 45 58 49;
+    --muted: 242 240 235;
+    --muted-foreground: 140 154 132;
+    --accent: 140 154 132;
+    --accent-foreground: 255 255 255;
+    --destructive: 194 123 102;
+    --destructive-foreground: 255 255 255;
+    --border: 230 226 218;
+    --input: 230 226 218;
+    --ring: 140 154 132;
+    --radius: 1.5rem;
+    --chart-1: 45 58 49;
+    --chart-2: 140 154 132;
+    --chart-3: 194 123 102;
+    --chart-4: 220 207 194;
+    --chart-5: 249 248 244;
+  }
+}
+
 @theme {
   /* Botanical Color Palette */
   --color-background: #F9F8F4;
