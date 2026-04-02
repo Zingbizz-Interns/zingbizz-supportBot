@@ -6,7 +6,6 @@ import { getChatbotById } from "../db/queries/chatbots";
 import type { ModelMessage } from "ai";
 import type { DocumentMetadata } from "../db/schema";
 
-const SIMILARITY_THRESHOLD = 0.75;
 const MAX_CONTEXT_RESULTS = 4;
 const MAX_CONTEXT_CHARS_PER_CHUNK = 900;
 
@@ -66,9 +65,8 @@ export async function ragQuery({
   // 3. Vector similarity search
   const results = await searchDocuments(chatbotId, queryEmbedding, 5);
 
-  // 4. Check confidence threshold
-  const topScore = results[0]?.similarity ?? 0;
-  const answered = topScore >= SIMILARITY_THRESHOLD;
+  // 4. Mark as answered whenever documents are retrieved
+  const answered = results.length > 0;
 
   // 5. Log query (fire-and-forget, don't await)
   logQuery({
