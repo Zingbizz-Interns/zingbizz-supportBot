@@ -64,13 +64,13 @@ export function Hero() {
             >
               <Link
                 href="/signup"
-                className="inline-flex items-center justify-center rounded-full bg-[#2D3A31] text-white px-10 py-4 text-sm font-[family-name:var(--font-sans)] uppercase tracking-widest transition-all duration-300 hover:bg-[#3d5245] hover:-translate-y-1 hover:shadow-[0_10px_20px_rgba(45,58,49,0.2)] active:scale-95 active:translate-y-0"
+                className="inline-flex items-center justify-center rounded-full bg-[#2D3A31] text-white px-10 py-4 text-sm font-[family-name:var(--font-sans)] uppercase tracking-widest transition-all duration-300 hover:bg-[#3d5245] hover:-translate-y-1 hover:shadow-[0_15px_30px_-5px_rgba(45,58,49,0.25)] active:scale-95 active:translate-y-0"
               >
                 Start for free
               </Link>
               <a
                 href="#how-it-works"
-                className="inline-flex items-center justify-center rounded-full border border-[#8C9A84] text-[#8C9A84] px-10 py-4 text-sm font-[family-name:var(--font-sans)] uppercase tracking-widest transition-all duration-300 hover:bg-[#8C9A84] hover:text-white hover:-translate-y-1 hover:shadow-lg active:scale-95 active:translate-y-0"
+                className="inline-flex items-center justify-center rounded-full border border-[#8C9A84] text-[#8C9A84] px-10 py-4 text-sm font-[family-name:var(--font-sans)] uppercase tracking-widest transition-all duration-300 hover:bg-[#8C9A84] hover:text-white hover:-translate-y-1 hover:shadow-[0_15px_30px_-5px_rgba(140,154,132,0.3)] active:scale-95 active:translate-y-0"
               >
                 See how it works
               </a>
@@ -117,8 +117,8 @@ export function Hero() {
               initial={{ opacity: 0, y: 30 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 1, duration: 0.6, type: "spring", stiffness: 100 }}
-              whileHover={{ y: -5, transition: { duration: 0.2 } }}
-              className="absolute -bottom-4 -left-4 md:left-0 bg-white rounded-2xl p-4 shadow-[0_10px_30px_rgba(45,58,49,0.1)] cursor-default"
+              whileHover={{ y: -8, scale: 1.02, transition: { type: "spring", stiffness: 300, damping: 20 } }}
+              className="absolute -bottom-4 -left-4 md:left-0 bg-white rounded-2xl p-4 shadow-[0_20px_40px_-10px_rgba(45,58,49,0.15)] border border-[#F2F0EB] cursor-default"
             >
               <p className="font-[family-name:var(--font-sans)] text-xs text-[#8C9A84] uppercase tracking-wide mb-1">
                 Setup time

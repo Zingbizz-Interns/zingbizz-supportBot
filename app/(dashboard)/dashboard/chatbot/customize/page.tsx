@@ -61,7 +61,7 @@ export default function CustomizePage() {
       }
     }
     fetchChatbot();
-  }, []);
+  }, [router]);
 
   function updateField(field: keyof FormState, value: string) {
     setForm((prev) => ({ ...prev, [field]: value }));

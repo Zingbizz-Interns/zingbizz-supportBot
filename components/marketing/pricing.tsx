@@ -34,8 +34,9 @@ export function Pricing() {
             Full access while we&apos;re in beta. Pricing will be introduced with advanced features in v2.
           </p>
 
-          <div className="max-w-sm mx-auto bg-white/5 border border-white/10 rounded-3xl p-8 text-left space-y-6">
-            <div>
+          <div className="max-w-sm mx-auto bg-white/5 backdrop-blur-xl border border-white/10 rounded-3xl p-8 text-left space-y-6 shadow-[0_30px_60px_-15px_rgba(0,0,0,0.5)] transition-all duration-500 hover:bg-white/10 hover:border-white/20 hover:-translate-y-2 hover:shadow-[0_40px_80px_-20px_rgba(0,0,0,0.6)] relative overflow-hidden">
+            <div className="absolute inset-0 bg-gradient-to-br from-white/10 to-transparent opacity-0 hover:opacity-100 transition-opacity duration-500 pointer-events-none" />
+            <div className="relative z-10">
               <p className="font-sans text-xs uppercase tracking-widest text-[#8C9A84] mb-2">Beta Plan</p>
               <div className="flex items-end gap-2">
                 <span className="font-serif text-5xl font-bold text-white">$0</span>
@@ -43,7 +44,7 @@ export function Pricing() {
               </div>
             </div>
 
-            <ul className="space-y-3">
+            <ul className="space-y-3 relative z-10">
               {features.map((f) => (
                 <li key={f} className="flex items-start gap-3">
                   <CheckCircle2 size={16} strokeWidth={1.5} className="text-[#8C9A84] flex-shrink-0 mt-0.5" />
@@ -54,7 +55,7 @@ export function Pricing() {
 
             <Link
               href="/signup"
-              className="block w-full text-center rounded-full bg-white text-[#2D3A31] font-sans text-sm uppercase tracking-widest px-8 py-3 hover:bg-[#F2F0EB] transition-colors duration-300"
+              className="block relative z-10 w-full text-center rounded-full bg-white text-[#2D3A31] font-sans text-sm uppercase tracking-widest px-8 py-3 hover:bg-[#F2F0EB] hover:scale-[1.02] active:scale-[0.98] transition-all duration-300"
             >
               Get started free
             </Link>

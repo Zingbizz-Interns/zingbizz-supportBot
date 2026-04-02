@@ -211,7 +211,7 @@ export default function EmbedPage() {
                 <p className="font-sans text-sm text-[#2D3A31]">
                   Use Next.js{" "}
                   <code className="font-mono text-xs bg-[#F2F0EB] px-1.5 py-0.5 rounded">{"<Script>"}</code>{" "}
-                  with <code className="font-mono text-xs bg-[#F2F0EB] px-1.5 py-0.5 rounded">strategy="lazyOnload"</code>{" "}
+                  with <code className="font-mono text-xs bg-[#F2F0EB] px-1.5 py-0.5 rounded">strategy=&quot;lazyOnload&quot;</code>{" "}
                   in your root layout for App Router projects.
                 </p>
                 <CodeBlock

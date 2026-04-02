@@ -79,7 +79,7 @@ export function Features() {
           viewport={{ once: true, margin: "-100px" }}
           className="grid md:grid-cols-2 lg:grid-cols-4 gap-8"
         >
-          {features.map((feature, i) => {
+          {features.map((feature) => {
             const Icon = feature.icon;
             return (
               <motion.div
@@ -87,19 +87,20 @@ export function Features() {
                 key={feature.title}
                 className="flex transition-transform duration-300"
               >
-                <div className="group w-full block hover:-translate-y-2 hover:shadow-xl transition-all duration-300 active:scale-95 cursor-default">
-                  <Card className="h-full border border-black/[0.08] transition-colors duration-300 group-hover:border-[#8C9A84]/30">
-                    <div className="w-12 h-12 rounded-full bg-[#F2F0EB] flex items-center justify-center mb-6 transition-colors duration-300 group-hover:bg-[#8C9A84]/20 group-hover:scale-110">
-                      <Icon size={20} strokeWidth={1.5} className="text-[#8C9A84] transition-colors duration-300 group-hover:text-[#2D3A31]" />
+                <article className="group w-full block hover:-translate-y-2 hover:shadow-[0_20px_40px_-10px_rgba(45,58,49,0.12)] transition-all duration-500 active:scale-95 cursor-default">
+                  <Card className="h-full p-8 border border-black/[0.08] transition-all duration-500 group-hover:border-[#8C9A84]/40 group-hover:bg-gradient-to-br group-hover:from-white group-hover:to-[#F9F8F4] overflow-hidden relative">
+                    <div className="absolute inset-0 bg-[#8C9A84]/[0.02] opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                    <div className="relative z-10 w-12 h-12 rounded-full bg-[#F2F0EB] flex items-center justify-center mb-6 transition-all duration-500 group-hover:bg-[#8C9A84]/20 group-hover:scale-110 group-hover:shadow-sm">
+                      <Icon size={20} strokeWidth={1.5} className="text-[#8C9A84] transition-colors duration-500 group-hover:text-[#2D3A31]" />
                     </div>
-                    <h3 className="font-[family-name:var(--font-serif)] text-xl font-semibold text-[#2D3A31] mb-3 transition-colors duration-300">
+                    <h3 className="relative z-10 font-[family-name:var(--font-serif)] text-xl font-semibold text-[#2D3A31] mb-3 transition-colors duration-500">
                       {feature.title}
                     </h3>
-                    <p className="font-[family-name:var(--font-sans)] text-[#2D3A31]/70 leading-relaxed transition-colors duration-300 group-hover:text-[#2D3A31]/90">
+                    <p className="relative z-10 font-[family-name:var(--font-sans)] text-[#2D3A31]/70 leading-relaxed transition-colors duration-500 group-hover:text-[#2D3A31]">
                       {feature.description}
                     </p>
                   </Card>
-                </div>
+                </article>
               </motion.div>
             );
           })}

@@ -22,7 +22,7 @@ export function Footer() {
         <p className="font-[family-name:var(--font-sans)] text-sm text-[#2D3A31]/50">
           &copy; {new Date().getFullYear()} ChatBot SaaS. All rights reserved.
         </p>
-        <div className="flex gap-6">
+        <nav aria-label="Footer Navigation" className="flex gap-6">
           <Link
             href="/login"
             className="font-[family-name:var(--font-sans)] text-sm text-[#2D3A31]/60 hover:text-[#2D3A31] transition-all hover:-translate-y-0.5"
@@ -35,7 +35,7 @@ export function Footer() {
           >
             Sign Up
           </Link>
-        </div>
+        </nav>
       </div>
     </motion.footer>
   );

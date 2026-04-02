@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { Menu, X } from "lucide-react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence, useScroll, useTransform } from "framer-motion";
 
 const navLinks = [
   { label: "Features", href: "#features" },
@@ -14,12 +14,30 @@ const navLinks = [
 export function Nav() {
   const [mobileOpen, setMobileOpen] = useState(false);
 
+  const { scrollY } = useScroll();
+  const backgroundColor = useTransform(
+    scrollY,
+    [0, 50],
+    ["rgba(249, 248, 244, 0)", "rgba(249, 248, 244, 0.9)"]
+  );
+  const backdropBlur = useTransform(scrollY, [0, 50], ["0px", "8px"]);
+  const borderBottom = useTransform(
+    scrollY,
+    [0, 50],
+    ["1px solid rgba(230, 226, 218, 0)", "1px solid rgba(230, 226, 218, 1)"]
+  );
+
   return (
     <motion.header
       initial={{ y: -100, opacity: 0 }}
       animate={{ y: 0, opacity: 1 }}
       transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
-      className="fixed top-0 left-0 right-0 z-40 bg-[#F9F8F4]/90 backdrop-blur-sm border-b border-[#E6E2DA]"
+      style={{
+        backgroundColor,
+        backdropFilter: useTransform(backdropBlur, (blur) => `blur(${blur})`),
+        borderBottom,
+      }}
+      className="fixed top-0 left-0 right-0 z-40"
     >
       <div className="max-w-7xl mx-auto px-4 md:px-8 h-16 flex items-center justify-between">
         {/* Logo */}
@@ -31,7 +49,7 @@ export function Nav() {
         </Link>
 
         {/* Desktop nav */}
-        <nav className="hidden md:flex items-center gap-8">
+        <nav aria-label="Main Navigation" className="hidden md:flex items-center gap-8">
           {navLinks.map((link, i) => (
             <motion.a
               key={link.label}
@@ -95,7 +113,7 @@ export function Nav() {
                 <X strokeWidth={1.5} size={24} />
               </button>
             </div>
-            <nav className="flex flex-col gap-6">
+            <nav aria-label="Mobile Navigation" className="flex flex-col gap-6">
               {navLinks.map((link, i) => (
                 <motion.a
                   key={link.label}
