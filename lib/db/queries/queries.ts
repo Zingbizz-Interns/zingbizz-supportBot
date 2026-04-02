@@ -45,3 +45,47 @@ export async function getUnansweredQuestions(
     askedAt: row.askedAt,
   }));
 }
+
+export async function getQueryStats(
+  chatbotId: string
+): Promise<{ total: number; answered: number; unanswered: number }> {
+  const result = await db.execute(sql`
+    SELECT
+      COUNT(*)::int AS total,
+      COUNT(*) FILTER (WHERE answered = true)::int AS answered,
+      COUNT(*) FILTER (WHERE answered = false)::int AS unanswered
+    FROM queries
+    WHERE chatbot_id = ${chatbotId}
+  `);
+
+  const row = result.rows[0] as { total: number; answered: number; unanswered: number } | undefined;
+  return {
+    total: Number(row?.total ?? 0),
+    answered: Number(row?.answered ?? 0),
+    unanswered: Number(row?.unanswered ?? 0),
+  };
+}
+
+export async function getDailyQuestionCounts(
+  chatbotId: string,
+  days = 7
+): Promise<Array<{ date: string; count: number; answered: number }>> {
+  const result = await db.execute(sql`
+    SELECT
+      DATE(created_at)::text AS date,
+      COUNT(*)::int AS count,
+      COUNT(*) FILTER (WHERE answered = true)::int AS answered
+    FROM queries
+    WHERE
+      chatbot_id = ${chatbotId}
+      AND created_at >= NOW() - INTERVAL '1 day' * ${days}
+    GROUP BY DATE(created_at)
+    ORDER BY DATE(created_at) ASC
+  `);
+
+  return (result.rows as Array<{ date: string; count: number; answered: number }>).map((row) => ({
+    date: row.date,
+    count: Number(row.count),
+    answered: Number(row.answered),
+  }));
+}
