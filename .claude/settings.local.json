@@ -52,7 +52,8 @@
       "Bash(cat \"D:/Developer/zingBizz/chat-bot/app/\\(dashboard\\)/dashboard/chatbot/sources/page.tsx\")",
       "Bash(cat \"D:/Developer/zingBizz/chat-bot/app/\\(dashboard\\)/dashboard/insights/page.tsx\")",
       "Bash(cat \"D:/Developer/zingBizz/chat-bot/app/\\(dashboard\\)/dashboard/chatbot/embed/page.tsx\")",
-      "Bash(rm:*)"
+      "Bash(rm:*)",
+      "Bash(xargs grep:*)"
     ]
   }
 }

@@ -11,6 +11,10 @@ Embeddable widget (public/widget.js)
   -> public config endpoint
   -> public streaming chat endpoint
 
+In-app training worker
+  -> Postgres-backed training_jobs queue
+  -> ingestion pipeline
+
 External services
   -> OpenAI for embeddings
   -> xAI for production chat generation
@@ -26,34 +30,37 @@ External services
 - Only two widget-facing endpoints are public:
   - `GET /api/agents/[id]/config`
   - `POST /api/chat`
+- Both public endpoints send permissive CORS headers.
 
-Both public endpoints send permissive CORS headers.
+## Training and Ingestion Flow
 
-## Ingestion Flow
-
-Training starts in `app/api/train/route.ts`, which enqueues a durable job, and `lib/training-queue.ts` drains that queue into `lib/ingestion/pipeline.ts`.
+Training starts in `app/api/train/route.ts`, is persisted in `training_jobs`, and is drained by `lib/training-queue.ts` into `lib/ingestion/pipeline.ts`.
 
 ```text
 1. Authenticate the user and confirm chatbot ownership.
-2. Validate page payloads and Blob URLs.
-3. Enqueue a `training_jobs` row and mark the chatbot as training.
-4. Claim the next available job with a short lease.
-5. Resolve private Vercel Blob URLs through `get()`.
-6. Parse uploaded content:
+2. Validate the payload and rate-limit training requests.
+3. Trim scraped page content to per-page and total character budgets.
+4. Create or reuse a durable `training_jobs` row and mark the chatbot as training.
+5. Kick the in-process queue worker.
+6. Claim the next job with a short renewable lease.
+7. Resolve private Vercel Blob URLs through `get(..., { access: "private" })`.
+8. Parse uploaded content:
    - PDF via pdf-parse v2 class API
    - text and markdown via utf-8 decode
-7. Chunk each page or file with RecursiveCharacterTextSplitter.
-8. Embed each chunk batch through OpenAI text-embedding-3-small.
-9. Insert chunk documents into Postgres in small batches.
-10. Mark the job completed and the chatbot ready on success, or retry/fail the job on error.
+9. Chunk each page or file with `RecursiveCharacterTextSplitter`.
+10. Delete all existing chatbot documents so the retrain fully replaces prior knowledge.
+11. Embed chunks in batches and insert them into Postgres.
+12. Mark the job completed and the chatbot ready, or retry/fail the job on error.
 ```
 
 Important implementation details:
 
 - Jobs are durable because the source payload is stored in Postgres.
-- The worker uses a renewable lease so a crashed process can release work for retry.
+- The queue enforces one active job per chatbot with a partial unique index.
+- The worker renews a 2-minute lease while processing long-running jobs.
+- Failed jobs are retried after a short delay until `maxAttempts` is exhausted.
+- Queue processing is kicked on enqueue and on training-status reconciliation, so interrupted work resumes when the dashboard polls again.
 - Upload fetches are guarded to `https://*.vercel-storage.com`.
-- Queue processing is kicked on enqueue and on training-status reads, so interrupted jobs resume when the dashboard polls again.
 - Chunking defaults to 1000 characters with 80 overlap.
 
 ## Retrieval and Chat Flow
@@ -65,38 +72,38 @@ Important implementation details:
 2. Upstash rate limiting is applied per chatbotId.
 3. The user message is embedded with OpenAI text-embedding-3-small.
 4. Top 5 chunks are fetched from documents using pgvector cosine distance.
-5. If similarity is >= 0.75:
-   - context chunks are included
-   - source labels are extracted
-   - answered=true is logged
-6. If similarity is < 0.75:
-   - no document context is included
-   - answered=false is logged
-   - the model is instructed to return the configured fallback for factual questions
-7. The response is streamed back as plain text through the AI SDK.
+5. The top similarity score is compared with the 0.75 threshold.
+6. Query analytics are logged with answered=true/false based on that score.
+7. Retrieved chunks are still included in the prompt whenever any results exist.
+8. Source labels are deduplicated from chunk metadata.
+9. The response is streamed back as plain text through the AI SDK.
 ```
 
-This means low-confidence queries do not short-circuit at the API layer. The fallback is currently enforced by prompt behavior, not by bypassing the model.
+Important nuance:
+
+- The similarity threshold no longer gates prompt context.
+- It currently controls analytics classification in the `queries` table.
+- The fallback answer is enforced by the system prompt when the available context is insufficient.
 
 ## Widget Flow
 
 `widget-src/` is bundled into `public/widget.js`.
 
 ```text
-1. Read data-chatbot-id from the embedding script tag.
+1. Read `data-chatbot-id` from the embedding script tag.
 2. Derive the base app URL from the script src.
 3. GET /api/agents/[id]/config.
-4. Abort initialization if isReady is false.
+4. Abort initialization if `isReady` is false.
 5. Inject the chat bubble, panel, styles, and welcome message.
 6. Auto-open the chat after 3 seconds.
 7. Keep message history in memory only.
 8. POST to /api/chat and stream the plain text response.
-9. Show up to 3 source labels from the X-Sources header.
+9. Show up to 3 source labels from the `X-Sources` header.
 ```
 
 Client-side limits and behavior:
 
-- The widget input element caps typed messages at 500 characters.
+- The widget input caps typed messages at 500 characters.
 - The server still enforces a 1000-character maximum.
 - The widget sends at most the last 10 prior messages as history.
 
@@ -107,10 +114,12 @@ idle -> training -> ready
                  -> error
 ```
 
-The app also includes training-state recovery:
+Recovery behavior:
 
 - `training_jobs` is the durable source of truth for queued and running work.
-- Reads through `/api/agents` or `/api/agents/[id]/status` reconcile `chatbots.training_status` against the latest job state and kick the queue worker if needed.
+- Reads through `/api/agents` and `/api/agents/[id]/status` reconcile `chatbots.training_status` with the latest queue state.
+- A chatbot can be moved back into `training` on reads if an active job still exists.
+- A stale `training` chatbot with no active or completed job is normalized to `error`.
 
 ## Authentication Architecture
 

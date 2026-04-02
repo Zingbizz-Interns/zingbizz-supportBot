@@ -46,6 +46,7 @@ export function getWidgetStyles(brandColor: string): string {
     .cb-msg-user { background: ${brandColor}; color: white; align-self: flex-end; border-bottom-right-radius: 4px; }
     .cb-msg-assistant { background: #F2F0EB; color: #2D3A31; align-self: flex-start; border-bottom-left-radius: 4px; }
     .cb-msg-assistant.cb-streaming::after { content: '▋'; animation: cb-blink 1s infinite; }
+    .cb-msg-assistant.cb-msg-error { background: #FEF2F2; color: #991B1B; font-style: italic; }
     @keyframes cb-blink { 0%,100% { opacity: 1; } 50% { opacity: 0; } }
     .cb-sources { font-size: 11px; color: #8C9A84; margin-top: 6px; align-self: flex-start; }
     .cb-source-link { color: #8C9A84; text-underline-offset: 2px; }

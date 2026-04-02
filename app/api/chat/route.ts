@@ -3,6 +3,39 @@ import { chatRateLimit } from "@/lib/rate-limit";
 import { parseBody } from "@/lib/validation/parse";
 import { chatRequestSchema } from "@/lib/validation/schemas";
 
+/**
+ * Pipes `source` through a TransformStream that monitors whether any bytes
+ * were forwarded.  If the source closes with zero bytes written the transform
+ * flushes an empty-stream sentinel (`\x00`) so the widget's `tokensReceived`
+ * flag stays false and the error UI branch is taken instead of a blank bubble.
+ */
+function guardEmptyStream(source: ReadableStream<Uint8Array>): ReadableStream<Uint8Array> {
+  let bytesForwarded = 0;
+
+  const { readable, writable } = new TransformStream<Uint8Array, Uint8Array>({
+    transform(chunk, controller) {
+      bytesForwarded += chunk.byteLength;
+      controller.enqueue(chunk);
+    },
+    flush(controller) {
+      if (bytesForwarded === 0) {
+        // Signal an empty response so the widget treats this as an error.
+        // The widget ignores any chunk that is solely this NUL byte because
+        // TextDecoder produces "" for a single 0x00 byte in some runtimes; we
+        // rely on `tokensReceived` staying false rather than any text value.
+        controller.enqueue(new Uint8Array([0x00]));
+      }
+    },
+  });
+
+  source.pipeTo(writable).catch(() => {
+    // Silently ignore — if the pipe errors the client will see an abrupt close
+    // which the widget error handler already handles.
+  });
+
+  return readable;
+}
+
 const CORS_HEADERS = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Methods": "POST, OPTIONS",
@@ -58,7 +91,14 @@ export async function POST(request: Request) {
       responseHeaders.set("X-Sources", JSON.stringify(result.sources));
     }
 
-    return new Response(streamResponse.body, {
+    // Wrap the stream body so we can detect zero-byte completions.
+    // If the upstream model stream closes without yielding any content, we
+    // inject an empty-stream marker that the widget can detect and handle.
+    const guardedBody = streamResponse.body
+      ? guardEmptyStream(streamResponse.body)
+      : null;
+
+    return new Response(guardedBody, {
       status: streamResponse.status,
       headers: responseHeaders,
     });

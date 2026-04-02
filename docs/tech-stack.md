@@ -8,14 +8,14 @@
 | UI runtime | React | `19.2.4` | Paired with `react-dom 19.2.4` |
 | Auth | Auth.js / NextAuth | `5.0.0-beta.30` | JWT sessions with credentials and optional OAuth |
 | ORM | Drizzle ORM | `0.45.2` | Uses Neon HTTP driver |
-| Database | Neon serverless Postgres | package `@neondatabase/serverless 1.0.2` | Stores users, chatbots, chunks, and insights |
-| Vector search | pgvector | database extension | Custom Drizzle vector type keyed off env dimensions |
+| Database | Neon serverless Postgres | package `@neondatabase/serverless 1.0.2` | Stores users, chatbots, queue jobs, vectors, and insights |
+| Vector search | pgvector | database extension | Custom Drizzle vector type plus HNSW index migration |
 | AI SDK | Vercel AI SDK | `6.0.141` | Used for embeddings and streamed text generation |
-| Embeddings | OpenAI | package `@ai-sdk/openai 3.0.48` | `text-embedding-3-small` (1536 dims) for query and document vectors |
+| Embeddings | OpenAI | package `@ai-sdk/openai 3.0.48` | `text-embedding-3-small` for query and document vectors |
 | Production chat model | xAI | package `@ai-sdk/xai 3.0.74` | `grok-2-1212` |
 | Test chat model | NVIDIA NIM | `@ai-sdk/openai-compatible 2.0.37` | Enabled through `AI_PROVIDER_MODE=test` |
-| Storage | Vercel Blob | `2.3.2` | Private file uploads resolved through `head()` |
-| Rate limiting | Upstash Redis + Ratelimit | `1.37.0` / `2.0.8` | Sliding window for `/api/chat` |
+| Storage | Vercel Blob | `2.3.2` | Private file uploads resolved through `get(..., { access: "private" })` |
+| Rate limiting | Upstash Redis + Ratelimit | `1.37.0` / `2.0.8` | Per-user limits for scrape/upload/train and per-chatbot limits for chat |
 | Scraping | Cheerio + built-in fetch | `1.2.0` | HTML-only site scraping |
 | PDF parsing | pdf-parse | `2.4.5` | Uses the v2 `PDFParse` class API |
 | Chunking | LangChain text splitters | `0.1.0` | Recursive character splitter |
@@ -88,7 +88,7 @@ EMBEDDING_DIMENSIONS=1536
 ### AI provider split
 
 - Embeddings and chat generation are configured independently
-- Embeddings use OpenAI `text-embedding-3-small` (1536 dimensions)
+- Embeddings use OpenAI `text-embedding-3-small`
 - Chat generation uses xAI Grok in production and NVIDIA NIM in test mode
 
 ### Scraping tradeoff
@@ -103,5 +103,6 @@ EMBEDDING_DIMENSIONS=1536
 
 ### Training runtime model
 
-- `/api/train` launches work asynchronously inside the app process
-- There is no queue worker, cron reconciliation job, or separate job table yet
+- `/api/train` persists work into `training_jobs`
+- Queue draining still happens inside the app process
+- Job leasing and retry state live in Postgres, so training survives process restarts better than the old in-memory approach

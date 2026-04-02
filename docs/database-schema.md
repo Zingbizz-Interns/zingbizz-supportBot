@@ -42,7 +42,7 @@ Constraint:
 
 ### `chatbots`
 
-One chatbot per user is enforced in application logic.
+Exactly one chatbot per user is enforced in both application logic and the database.
 
 ```ts
 chatbots = {
@@ -64,6 +64,11 @@ Training states:
 - `training`
 - `ready`
 - `error`
+
+Constraints:
+
+- Unique index on `user_id`
+- Check constraint limiting `training_status` to the four known values
 
 ### `documents`
 
@@ -88,13 +93,65 @@ type DocumentMetadata = {
   title?: string;
   source_type: "scrape" | "upload";
   file_name?: string;
+  blob_url?: string;
 };
 ```
 
 Current indexing:
 
 - B-tree index on `chatbot_id`
-- No ANN vector index is currently defined in the live Drizzle schema
+- HNSW index on `embedding` using cosine distance, created in migration `0005_db_hardening.sql`
+
+### `training_jobs`
+
+Stores durable queue jobs for chatbot training.
+
+```ts
+training_jobs = {
+  id: uuid primary key,
+  chatbotId: uuid references chatbots.id on delete cascade,
+  status: text default "queued",
+  payload: jsonb not null,
+  attempts: integer default 0,
+  maxAttempts: integer default 2,
+  lastError: text nullable,
+  availableAt: timestamp not null,
+  lockedBy: text nullable,
+  lockedAt: timestamp nullable,
+  leaseExpiresAt: timestamp nullable,
+  createdAt: timestamp not null,
+  startedAt: timestamp nullable,
+  finishedAt: timestamp nullable,
+  updatedAt: timestamp not null
+}
+```
+
+Status values:
+
+- `queued`
+- `running`
+- `completed`
+- `failed`
+
+Constraints and indexes:
+
+- Check constraint limiting status to the four queue states
+- Index on `chatbot_id`
+- Composite index on `(status, created_at)`
+- Partial unique index allowing only one active `queued` or `running` job per chatbot
+
+Payload shape:
+
+```ts
+type TrainingJobPayload = {
+  pages: Array<{
+    url: string;
+    title: string;
+    content: string;
+  }>;
+  fileKeys: string[];
+};
+```
 
 ### `queries`
 
@@ -113,7 +170,8 @@ queries = {
 Meaning of `answered`:
 
 - `true` when the top retrieval similarity meets the threshold
-- `false` when retrieval is below threshold, even though the chat model may still answer greetings
+- `false` when retrieval is below threshold
+- This is an analytics signal, not a transcript-level guarantee that the LLM response was correct or incorrect
 
 ## Vector Search
 
@@ -135,13 +193,14 @@ Behavior:
 - Uses pgvector cosine distance
 - Converts distance to similarity with `1 - distance`
 - Uses a `0.75` threshold in `lib/ai/rag.ts`
+- Returns the top 5 chunks for prompt construction
 
 ## Embedding Dimensions
 
 The vector type is generated from `EMBEDDING_DIMENSIONS` in `lib/config/embedding.ts`.
 
 - Default dimension: `1536`
-- The current migration history includes:
+- The migration history includes:
   - initial `1536`
   - a temporary move to `2560`
   - a reset back to `1536` in `0003_embedding_dimension_1536.sql`
@@ -153,6 +212,7 @@ Because Postgres vector dimensions cannot be safely cast across arbitrary sizes,
 - `users` -> many `chatbots`
 - `users` -> many `accounts`
 - `chatbots` -> many `documents`
+- `chatbots` -> many `training_jobs`
 - `chatbots` -> many `queries`
 
 ## Migration Notes

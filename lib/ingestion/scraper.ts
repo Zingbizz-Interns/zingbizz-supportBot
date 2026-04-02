@@ -15,7 +15,84 @@ const BLOCKED_SELECTORS = [
   "[role='navigation']", "[role='banner']", "[role='contentinfo']",
   ".cookie-banner", ".nav", ".footer", ".header", ".sidebar",
   "#nav", "#footer", "#header", "#sidebar",
+  "svg", "button", "form", "iframe", "aside",
 ];
+
+const CONTENT_ROOT_SELECTORS = [
+  "main",
+  "article",
+  "[role='main']",
+  ".main",
+  "#main",
+  ".content",
+  "#content",
+  ".page-content",
+  ".entry-content",
+  ".post-content",
+  ".article-content",
+].join(", ");
+
+const TEXT_BLOCK_SELECTORS = [
+  "h1", "h2", "h3", "h4", "h5", "h6",
+  "p", "li", "blockquote", "pre",
+  "td", "th", "figcaption",
+].join(", ");
+
+const NOISY_TEXT_PATTERNS = [
+  /all rights reserved/i,
+  /subscribe to our newsletter/i,
+  /useful resources/i,
+  /cookie/i,
+  /privacy policy/i,
+  /terms(?:\s+of\s+service)?/i,
+  /plot no\./i,
+  /phone:\s*\+?\d/i,
+];
+
+function normalizeWhitespace(text: string): string {
+  return text
+    .replace(/\u00a0/g, " ")
+    .replace(/\t/g, " ")
+    .replace(/[ ]{2,}/g, " ")
+    .replace(/\s+\n/g, "\n")
+    .replace(/\n\s+/g, "\n")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
+}
+
+function isLikelyBoilerplate(text: string): boolean {
+  const normalized = normalizeWhitespace(text);
+  if (!normalized) return true;
+
+  if (NOISY_TEXT_PATTERNS.some((pattern) => pattern.test(normalized))) {
+    return true;
+  }
+
+  const lowered = normalized.toLowerCase();
+  const navTerms = [
+    "home",
+    "about",
+    "works",
+    "blog",
+    "careers",
+    "contact",
+    "services",
+    "privacy",
+    "terms",
+  ];
+  const navMatches = navTerms.filter((term) => lowered.includes(term)).length;
+
+  return normalized.length < 120 && navMatches >= 4;
+}
+
+function getContentRoot($: ReturnType<typeof cheerio.load>) {
+  const candidate = $(CONTENT_ROOT_SELECTORS)
+    .toArray()
+    .map((node) => $(node))
+    .find((element) => normalizeWhitespace(element.text()).length >= 200);
+
+  return candidate ?? $("body");
+}
 
 function extractText($: ReturnType<typeof cheerio.load>): string {
   // Remove unwanted elements
@@ -23,14 +100,26 @@ function extractText($: ReturnType<typeof cheerio.load>): string {
     try { $(sel).remove(); } catch { /* ignore invalid selectors */ }
   });
 
-  // Get text from body
-  const text = $("body").text();
-  // Normalize whitespace
-  return text
-    .replace(/\t/g, " ")
-    .replace(/[ ]{2,}/g, " ")
-    .replace(/\n{3,}/g, "\n\n")
-    .trim();
+  const root = getContentRoot($);
+  const blocks = root.find(TEXT_BLOCK_SELECTORS).toArray();
+  const seen = new Set<string>();
+
+  const textBlocks = blocks
+    .map((node) => normalizeWhitespace($(node).text()))
+    .filter((text) => text.length >= 20)
+    .filter((text) => !isLikelyBoilerplate(text))
+    .filter((text) => {
+      const key = text.toLowerCase();
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+
+  if (textBlocks.length > 0) {
+    return normalizeWhitespace(textBlocks.join("\n\n"));
+  }
+
+  return normalizeWhitespace(root.text());
 }
 
 function clampText(text: string, maxChars: number): string {

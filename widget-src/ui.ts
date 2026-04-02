@@ -68,7 +68,12 @@ export function initUI(chatbotConfig: ChatbotConfig, appBaseUrl: string): void {
 }
 
 function toggleChat(): void {
-  isOpen ? closeChat() : openChat();
+  if (isOpen) {
+    closeChat();
+    return;
+  }
+
+  openChat();
 }
 
 function openChat(): void {
@@ -121,7 +126,9 @@ async function handleSend(): Promise<void> {
 
   const userMsg: Message = { role: "user", content: message };
   // Keep only last 5 exchanges (10 messages) for context
-  const recentHistory = history.slice(-10);
+  const recentHistory = history
+    .filter((entry) => entry.content.trim().length > 0)
+    .slice(-10);
   history.push(userMsg);
 
   isStreaming = true;
@@ -142,8 +149,18 @@ async function handleSend(): Promise<void> {
       assistantEl.textContent = fullContent;
       scrollToBottom();
     },
-    (sources: Source[]) => {
+    (sources: Source[], tokensReceived: boolean) => {
       assistantEl.classList.remove("cb-streaming");
+
+      if (!tokensReceived || fullContent.trim() === "") {
+        assistantEl.textContent = "Sorry, I couldn't generate a response. Please try again.";
+        assistantEl.classList.add("cb-msg-error");
+        isStreaming = false;
+        setInputDisabled(false);
+        ($("cb-input") as HTMLInputElement)?.focus();
+        return;
+      }
+
       history.push({ role: "assistant", content: fullContent });
 
       if (sources.length > 0) {
@@ -179,6 +196,7 @@ async function handleSend(): Promise<void> {
       console.error("[ChatBot] Error:", err);
       isStreaming = false;
       setInputDisabled(false);
+      ($("cb-input") as HTMLInputElement)?.focus();
     }
   );
 }

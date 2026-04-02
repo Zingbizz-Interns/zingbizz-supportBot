@@ -31,16 +31,12 @@ Set these before running the app:
 - `UPSTASH_REDIS_REST_URL`
 - `UPSTASH_REDIS_REST_TOKEN`
 - `COHERE_API_KEY`
-- `XAI_API_KEY`
+- `OPENAI_CHAT_MODEL` (optional, defaults to `gpt-4o-mini`)
 
 Optional:
 
 - `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET`
 - `GITHUB_ID` and `GITHUB_SECRET`
-- `AI_PROVIDER_MODE=test`
-- `NVIDIA_NIM_BASE_URL`
-- `NVIDIA_NIM_API_KEY`
-- `NVIDIA_NIM_CHAT_MODEL`
 - `EMBEDDING_DIMENSIONS` (defaults to `1536`)
 
 ## Useful Scripts

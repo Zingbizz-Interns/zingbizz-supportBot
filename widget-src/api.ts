@@ -12,7 +12,7 @@ export async function sendMessage(
   history: Message[],
   baseUrl: string,
   onToken: (token: string) => void,
-  onDone: (sources: Source[]) => void,
+  onDone: (sources: Source[], tokensReceived: boolean) => void,
   onError: (err: Error) => void
 ): Promise<void> {
   try {
@@ -34,15 +34,23 @@ export async function sendMessage(
     if (!reader) throw new Error("No response body");
 
     const decoder = new TextDecoder();
+    let tokensReceived = false;
 
     while (true) {
       const { done, value } = await reader.read();
       if (done) break;
       const chunk = decoder.decode(value, { stream: true });
-      if (chunk) onToken(chunk);
+      // Strip the NUL sentinel emitted by the server when the upstream model
+      // stream closes with zero content.  Any remaining non-empty text counts
+      // as a real token.
+      const meaningful = chunk.replace(/\x00/g, "");
+      if (meaningful) {
+        tokensReceived = true;
+        onToken(meaningful);
+      }
     }
 
-    onDone(sources);
+    onDone(sources, tokensReceived);
   } catch (err) {
     onError(err instanceof Error ? err : new Error(String(err)));
   }

@@ -41,7 +41,7 @@ Behavior:
 - Validates JSON, `chatbotId`, and `message`
 - Rejects messages over 1000 characters
 - Applies Upstash sliding-window rate limiting at 50 requests per minute per `chatbotId`
-- Filters `history` server-side to valid `user` and `assistant` entries
+- Passes at most the last 10 history items into the LLM prompt
 - Streams a plain text response body
 
 Response characteristics:
@@ -53,7 +53,8 @@ Response characteristics:
 Notes:
 
 - `X-Sources` values are display labels derived from metadata, not guaranteed raw URLs
-- Low-confidence retrieval currently still goes through the model; the fallback message is enforced in the prompt
+- Retrieval context is included whenever search returns results
+- The similarity threshold is currently used for analytics classification, not for skipping context
 
 ### `OPTIONS /api/chat`
 
@@ -99,7 +100,7 @@ Request body:
 
 Behavior:
 
-- Requires an email containing `@`
+- Requires a valid email address
 - Requires password length of at least 8
 - Rejects duplicate emails
 - Returns a provider-specific error when the email already belongs to an OAuth-only account
@@ -139,7 +140,7 @@ Response:
 
 Special behavior:
 
-- Runs stale-training recovery before returning the chatbot
+- Runs training-status recovery before returning the chatbot
 
 ### `POST /api/agents`
 
@@ -174,7 +175,7 @@ Allowed fields:
 
 ### `DELETE /api/agents/[id]`
 
-Deletes the chatbot and all related documents and queries through cascading foreign keys.
+Deletes the chatbot and all related documents, queries, and training jobs through cascading foreign keys.
 
 ### `GET /api/agents/[id]/status`
 
@@ -186,7 +187,7 @@ Returns:
 }
 ```
 
-Also performs stale-training recovery before returning the current status.
+Also performs training-status recovery before returning the current status.
 
 ### `GET /api/agents/[id]/insights`
 
@@ -205,6 +206,11 @@ Returns:
   }>;
 }
 ```
+
+Notes:
+
+- Each list is capped at 20 rows
+- `answered` reflects retrieval confidence logging, not a transcript-level audit of the model output
 
 ### `GET /api/agents/[id]/sources`
 
@@ -229,6 +235,11 @@ Deletes all document chunks whose metadata matches the decoded `sourceId` by:
 
 - `metadata.url`, or
 - `metadata.file_name`
+
+Additional behavior:
+
+- For uploaded sources, the handler also attempts to delete the underlying Vercel Blob object
+- Blob cleanup is best-effort and non-fatal
 
 ### `POST /api/scrape`
 
@@ -257,6 +268,7 @@ Response:
 Behavior:
 
 - Only accepts `http` and `https`
+- Applies rate limiting at 10 requests per 5 minutes per user
 - Skips non-HTML responses
 - Limits per-page and total scraped content
 - Removes common nav, header, footer, and script blocks before text extraction
@@ -285,7 +297,11 @@ Success response:
 }
 ```
 
-`key` is the full Blob URL later passed to `/api/train`.
+Notes:
+
+- Expects `multipart/form-data` with a `file` field
+- Applies rate limiting at 20 requests per 10 minutes per user
+- `key` is the full private Blob URL later passed to `/api/train`
 
 ### `POST /api/train`
 
@@ -310,12 +326,13 @@ Validation limits:
 - Up to 10 pages
 - Up to 10 uploaded files
 - At least one page or file required
-- Scraped page content is trimmed to the configured page and total budgets
+- Rate limited at 5 requests per 10 minutes per user
+- Scraped page content is trimmed to a 50,000-character per-page budget and a 250,000-character total budget
 
 Blob handling rules:
 
-- Only `https://*.vercel-storage.com` Blob URLs are fetched
-- Private Blob download URLs are resolved with `head()`
+- Only `https://*.vercel-storage.com` Blob URLs are fetched by the worker
+- Private Blob download streams are resolved through `get(..., { access: "private" })`
 
 Success response:
 
@@ -325,6 +342,11 @@ Success response:
   trainingStatus: "training";
 }
 ```
+
+Notes:
+
+- The route enqueues durable work instead of running ingestion inline
+- If an active queued or running job already exists for the chatbot, that job is reused
 
 ## Error Format
 
