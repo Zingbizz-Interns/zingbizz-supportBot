@@ -1,7 +1,7 @@
 "use client";
 
 import { Card } from "@/components/ui/card";
-import { Zap, Globe, Code } from "lucide-react";
+import { Zap, Globe, Code, MessageSquare } from "lucide-react";
 import { motion, Variants } from "framer-motion";
 
 const features = [
@@ -22,6 +22,12 @@ const features = [
     title: "One-Line Embed",
     description:
       "Copy a single script tag. Paste it anywhere. Your chatbot appears as a floating widget on any website.",
+  },
+  {
+    icon: MessageSquare,
+    title: "Instant Answers",
+    description:
+      "Visitors get accurate answers in seconds — no waiting, no scrolling through docs.",
   },
 ];
 
@@ -71,7 +77,7 @@ export function Features() {
           initial="hidden"
           whileInView="visible"
           viewport={{ once: true, margin: "-100px" }}
-          className="grid md:grid-cols-3 gap-8"
+          className="grid md:grid-cols-2 lg:grid-cols-4 gap-8"
         >
           {features.map((feature, i) => {
             const Icon = feature.icon;
@@ -79,7 +85,7 @@ export function Features() {
               <motion.div
                 variants={itemVariants}
                 key={feature.title}
-                className={`flex transition-transform duration-300 ${i % 2 === 1 ? "md:translate-y-12" : ""}`}
+                className="flex transition-transform duration-300"
               >
                 <div className="group w-full block hover:-translate-y-2 hover:shadow-xl transition-all duration-300 active:scale-95 cursor-default">
                   <Card className="h-full border border-black/[0.08] transition-colors duration-300 group-hover:border-[#8C9A84]/30">
