@@ -2,6 +2,7 @@ import { chunkText } from "./chunker";
 import { updateChatbot } from "../db/queries/chatbots";
 import { insertDocuments, deleteAllDocumentsByChatbot } from "../db/queries/documents";
 import { embedTexts } from "../ai/embed";
+import { EMBEDDING_BATCH_SIZE } from "../config/constants";
 import type { NewDocument } from "../db/schema";
 
 export interface IngestionPage {
@@ -15,9 +16,6 @@ export interface IngestionFile {
   content: string;
   blobUrl?: string; // Full Vercel Blob URL for cleanup on source deletion
 }
-
-const EMBEDDING_BATCH_SIZE = 25;
-
 async function ingestSourceChunks(
   chatbotId: string,
   chunks: Array<{ content: string; index: number }>,

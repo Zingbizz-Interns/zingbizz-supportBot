@@ -1,4 +1,5 @@
 import * as cheerio from "cheerio";
+import { isPrivateUrl } from "../url-safety";
 
 export interface ScrapedPage {
   url: string;
@@ -9,6 +10,7 @@ export interface ScrapedPage {
 const MAX_PAGE_CONTENT_CHARS = 50_000;
 const MAX_TOTAL_SCRAPED_CONTENT_CHARS = 250_000;
 const MAX_HTML_BYTES = 2 * 1024 * 1024;
+const MAX_REDIRECTS = 5;
 
 const BLOCKED_SELECTORS = [
   "nav", "footer", "header", "script", "style", "noscript",
@@ -163,26 +165,47 @@ function extractInternalLinks(
 
 async function fetchPage(url: string): Promise<{ html: string; finalUrl: string } | null> {
   try {
-    const res = await fetch(url, {
-      headers: {
-        "User-Agent": "Mozilla/5.0 (compatible; ZingDesk/1.0; +https://zingdesk.ai)",
-        Accept: "text/html,application/xhtml+xml",
-      },
-      redirect: "follow",
-      signal: AbortSignal.timeout(10000), // 10s timeout
-    });
+    let currentUrl = url;
 
-    if (!res.ok) return null;
-    const contentType = res.headers.get("content-type") ?? "";
-    if (!contentType.includes("text/html")) return null;
-    const contentLength = Number(res.headers.get("content-length") ?? "0");
-    if (Number.isFinite(contentLength) && contentLength > MAX_HTML_BYTES) {
-      console.warn("[scrape] Skipping oversized page:", url, contentLength);
-      return null;
+    for (let redirectCount = 0; redirectCount <= MAX_REDIRECTS; redirectCount++) {
+      // SSRF protection: block private/reserved IPs and cloud metadata endpoints
+      if (await isPrivateUrl(currentUrl)) {
+        console.warn("[scrape] Blocked private/reserved URL:", currentUrl);
+        return null;
+      }
+
+      const res = await fetch(currentUrl, {
+        headers: {
+          "User-Agent": "Mozilla/5.0 (compatible; ZingDesk/1.0; +https://zingdesk.ai)",
+          Accept: "text/html,application/xhtml+xml",
+        },
+        redirect: "manual",
+        signal: AbortSignal.timeout(10000), // 10s timeout
+      });
+
+      if (res.status >= 300 && res.status < 400) {
+        const location = res.headers.get("location");
+        if (!location) return null;
+
+        currentUrl = new URL(location, currentUrl).toString();
+        continue;
+      }
+
+      if (!res.ok) return null;
+      const contentType = res.headers.get("content-type") ?? "";
+      if (!contentType.includes("text/html")) return null;
+      const contentLength = Number(res.headers.get("content-length") ?? "0");
+      if (Number.isFinite(contentLength) && contentLength > MAX_HTML_BYTES) {
+        console.warn("[scrape] Skipping oversized page:", currentUrl, contentLength);
+        return null;
+      }
+
+      const html = await readTextWithLimit(res, MAX_HTML_BYTES);
+      return { html, finalUrl: res.url || currentUrl };
     }
 
-    const html = await readTextWithLimit(res, MAX_HTML_BYTES);
-    return { html, finalUrl: res.url };
+    console.warn("[scrape] Too many redirects:", url);
+    return null;
   } catch {
     return null;
   }
@@ -227,7 +250,9 @@ export async function scrapeWebsite(
 ): Promise<ScrapedPage[]> {
   const results: ScrapedPage[] = [];
   const visited = new Set<string>();
+  const queued = new Set<string>(); // O(1) lookup instead of Array.includes
   const queue: string[] = [url];
+  queued.add(url);
   let totalContentChars = 0;
 
   while (queue.length > 0 && results.length < maxPages) {
@@ -273,11 +298,12 @@ export async function scrapeWebsite(
     });
     totalContentChars += content.length;
 
-    // Add new links to queue
+    // Add new links to queue (using Set for O(1) dedup)
     for (const link of internalLinks) {
       const norm = link.replace(/\/$/, "");
-      if (!visited.has(norm) && !queue.includes(link)) {
+      if (!visited.has(norm) && !queued.has(norm)) {
         queue.push(link);
+        queued.add(norm);
       }
     }
   }

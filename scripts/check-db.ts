@@ -1,5 +1,9 @@
-import { db } from "./lib/db/client";
-import { chatbots, documents } from "./lib/db/schema";
+/**
+ * Debug script: check chatbot and document status in the database.
+ * Usage: npx tsx scripts/check-db.ts
+ */
+import { db } from "../lib/db/client";
+import { chatbots, documents } from "../lib/db/schema";
 
 async function run() {
   const c = await db.select().from(chatbots);

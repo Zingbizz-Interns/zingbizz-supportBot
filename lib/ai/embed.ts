@@ -1,6 +1,7 @@
 import { openai } from "@ai-sdk/openai";
 import { embed, embedMany } from "ai";
 import { EMBEDDING_DIMENSIONS } from "@/lib/config/embedding";
+import { EMBEDDING_BATCH_SIZE } from "@/lib/config/constants";
 
 const embeddingModel = openai.embedding("text-embedding-3-small");
 
@@ -27,14 +28,13 @@ export async function embedText(text: string): Promise<number[]> {
 export async function embedTexts(texts: string[]): Promise<number[][]> {
   if (texts.length === 0) return [];
 
-  const batchSize = 25;
   const allEmbeddings: number[][] = [];
 
   console.log(`[embed] Starting embedding for ${texts.length} chunks...`);
 
-  for (let i = 0; i < texts.length; i += batchSize) {
-    const batch = texts.slice(i, i + batchSize);
-    console.log(`[embed] Processing batch ${i / batchSize + 1} (${batch.length} items)...`);
+  for (let i = 0; i < texts.length; i += EMBEDDING_BATCH_SIZE) {
+    const batch = texts.slice(i, i + EMBEDDING_BATCH_SIZE);
+    console.log(`[embed] Processing batch ${i / EMBEDDING_BATCH_SIZE + 1} (${batch.length} items)...`);
 
     try {
       const { embeddings } = await embedMany({
@@ -43,9 +43,9 @@ export async function embedTexts(texts: string[]): Promise<number[][]> {
       });
       embeddings.forEach(validateEmbeddingDimensions);
       allEmbeddings.push(...embeddings);
-      console.log(`[embed] Batch ${i / batchSize + 1} completed.`);
+      console.log(`[embed] Batch ${i / EMBEDDING_BATCH_SIZE + 1} completed.`);
     } catch (error) {
-      console.error(`[embed] Error in batch ${i / batchSize + 1}:`, error);
+      console.error(`[embed] Error in batch ${i / EMBEDDING_BATCH_SIZE + 1}:`, error);
       throw error;
     }
   }

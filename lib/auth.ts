@@ -3,9 +3,7 @@ import Credentials from "next-auth/providers/credentials";
 import Google from "next-auth/providers/google";
 import GitHub from "next-auth/providers/github";
 import bcrypt from "bcryptjs";
-import { getUserByEmail } from "./db/queries/users";
-import { getOrCreateOAuthUser } from "./db/queries/users";
-import { getUserById } from "./db/queries/users";
+import { getUserByEmail, getOrCreateOAuthUser, getUserById } from "./db/queries/users";
 
 const googleConfigured = Boolean(
   process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET

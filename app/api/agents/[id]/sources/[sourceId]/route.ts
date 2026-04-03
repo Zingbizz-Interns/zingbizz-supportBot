@@ -1,28 +1,19 @@
-import { auth } from "@/lib/auth";
 import { del } from "@vercel/blob";
-import { getChatbotById } from "@/lib/db/queries/chatbots";
+import { requireOwnedChatbot, isAuthError } from "@/lib/auth-helpers";
 import { deleteDocumentsBySource, getSourceBlobUrl } from "@/lib/db/queries/documents";
 
 export async function DELETE(
   _request: Request,
   { params }: { params: Promise<{ id: string; sourceId: string }> }
 ) {
-  const session = await auth();
-  if (!session?.user?.id) {
-    return Response.json({ error: "Unauthorized" }, { status: 401 });
-  }
-
   const { id, sourceId } = await params;
 
+  const authResult = await requireOwnedChatbot(id);
+  if (isAuthError(authResult)) return authResult.response;
+
+  const decodedSourceId = decodeURIComponent(sourceId);
+
   try {
-    const chatbot = await getChatbotById(id);
-    if (!chatbot) return Response.json({ error: "Not found" }, { status: 404 });
-    if (chatbot.userId !== session.user.id) {
-      return Response.json({ error: "Forbidden" }, { status: 403 });
-    }
-
-    const decodedSourceId = decodeURIComponent(sourceId);
-
     // Fetch blob URL before deleting (returns null for scraped sources)
     const blobUrl = await getSourceBlobUrl(id, decodedSourceId);
 

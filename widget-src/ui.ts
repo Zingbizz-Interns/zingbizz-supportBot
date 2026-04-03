@@ -8,8 +8,14 @@ const history: Message[] = [];
 let config: ChatbotConfig;
 let baseUrl: string;
 
-function $(id: string): HTMLElement | null {
+function cbEl(id: string): HTMLElement | null {
   return document.getElementById(id);
+}
+
+function escapeHtml(str: string): string {
+  return str.replace(/[&<>"']/g, (c) =>
+    ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "\"": "&quot;", "'": "&#39;" }[c]!)
+  );
 }
 
 export function initUI(chatbotConfig: ChatbotConfig, appBaseUrl: string): void {
@@ -30,9 +36,9 @@ export function initUI(chatbotConfig: ChatbotConfig, appBaseUrl: string): void {
         <path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2z"/>
       </svg>
     </button>
-    <div id="cb-window" class="cb-hidden" role="dialog" aria-label="${config.name} chat">
+    <div id="cb-window" class="cb-hidden" role="dialog" aria-label="${escapeHtml(config.name)} chat">
       <div id="cb-header">
-        <span id="cb-header-title">${config.name}</span>
+        <span id="cb-header-title">${escapeHtml(config.name)}</span>
         <button id="cb-close-btn" aria-label="Close chat">
           <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
             <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
@@ -59,10 +65,10 @@ export function initUI(chatbotConfig: ChatbotConfig, appBaseUrl: string): void {
   addMessage("assistant", config.welcomeMessage);
 
   // Wire up events
-  $("cb-bubble")!.addEventListener("click", toggleChat);
-  $("cb-close-btn")!.addEventListener("click", closeChat);
-  $("cb-send-btn")!.addEventListener("click", handleSend);
-  $("cb-input")!.addEventListener("keydown", (e) => {
+  cbEl("cb-bubble")!.addEventListener("click", toggleChat);
+  cbEl("cb-close-btn")!.addEventListener("click", closeChat);
+  cbEl("cb-send-btn")!.addEventListener("click", handleSend);
+  cbEl("cb-input")!.addEventListener("keydown", (e) => {
     if ((e as KeyboardEvent).key === "Enter" && !isStreaming) handleSend();
   });
 }
@@ -78,20 +84,20 @@ function toggleChat(): void {
 
 function openChat(): void {
   isOpen = true;
-  $("cb-window")?.classList.remove("cb-hidden");
-  $("cb-bubble")?.setAttribute("aria-expanded", "true");
-  setTimeout(() => ($("cb-input") as HTMLInputElement)?.focus(), 250);
+  cbEl("cb-window")?.classList.remove("cb-hidden");
+  cbEl("cb-bubble")?.setAttribute("aria-expanded", "true");
+  setTimeout(() => (cbEl("cb-input") as HTMLInputElement)?.focus(), 250);
   scrollToBottom();
 }
 
 function closeChat(): void {
   isOpen = false;
-  $("cb-window")?.classList.add("cb-hidden");
-  $("cb-bubble")?.setAttribute("aria-expanded", "false");
+  cbEl("cb-window")?.classList.add("cb-hidden");
+  cbEl("cb-bubble")?.setAttribute("aria-expanded", "false");
 }
 
 function addMessage(role: "user" | "assistant", content: string): HTMLElement {
-  const messagesEl = $("cb-messages")!;
+  const messagesEl = cbEl("cb-messages")!;
   const msgEl = document.createElement("div");
   msgEl.className = `cb-msg cb-msg-${role}`;
   msgEl.textContent = content;
@@ -101,13 +107,13 @@ function addMessage(role: "user" | "assistant", content: string): HTMLElement {
 }
 
 function scrollToBottom(): void {
-  const messagesEl = $("cb-messages");
+  const messagesEl = cbEl("cb-messages");
   if (messagesEl) messagesEl.scrollTop = messagesEl.scrollHeight;
 }
 
 function setInputDisabled(disabled: boolean): void {
-  const input = $("cb-input") as HTMLInputElement | null;
-  const sendBtn = $("cb-send-btn") as HTMLButtonElement | null;
+  const input = cbEl("cb-input") as HTMLInputElement | null;
+  const sendBtn = cbEl("cb-send-btn") as HTMLButtonElement | null;
   if (input) input.disabled = disabled;
   if (sendBtn) sendBtn.disabled = disabled;
 }
@@ -115,7 +121,7 @@ function setInputDisabled(disabled: boolean): void {
 async function handleSend(): Promise<void> {
   if (isStreaming) return;
 
-  const inputEl = $("cb-input") as HTMLInputElement | null;
+  const inputEl = cbEl("cb-input") as HTMLInputElement | null;
   if (!inputEl) return;
 
   const message = inputEl.value.trim();
@@ -157,7 +163,7 @@ async function handleSend(): Promise<void> {
         assistantEl.classList.add("cb-msg-error");
         isStreaming = false;
         setInputDisabled(false);
-        ($("cb-input") as HTMLInputElement)?.focus();
+        (cbEl("cb-input") as HTMLInputElement)?.focus();
         return;
       }
 
@@ -182,13 +188,13 @@ async function handleSend(): Promise<void> {
             sourcesEl.appendChild(document.createTextNode(src.label));
           }
         });
-        $("cb-messages")?.appendChild(sourcesEl);
+        cbEl("cb-messages")?.appendChild(sourcesEl);
         scrollToBottom();
       }
 
       isStreaming = false;
       setInputDisabled(false);
-      ($("cb-input") as HTMLInputElement)?.focus();
+      (cbEl("cb-input") as HTMLInputElement)?.focus();
     },
     (err) => {
       assistantEl.classList.remove("cb-streaming");
@@ -196,7 +202,7 @@ async function handleSend(): Promise<void> {
       console.error("[ChatBot] Error:", err);
       isStreaming = false;
       setInputDisabled(false);
-      ($("cb-input") as HTMLInputElement)?.focus();
+      (cbEl("cb-input") as HTMLInputElement)?.focus();
     }
   );
 }

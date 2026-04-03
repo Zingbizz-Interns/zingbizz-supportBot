@@ -1,5 +1,9 @@
-import { db } from "./lib/db/client";
-import { chatbots } from "./lib/db/schema";
+/**
+ * Debug script: get the first chatbot ID from the database.
+ * Usage: npx tsx scripts/get-bot.ts
+ */
+import { db } from "../lib/db/client";
+import { chatbots } from "../lib/db/schema";
 
 async function run() {
   const bots = await db.select().from(chatbots).limit(1);

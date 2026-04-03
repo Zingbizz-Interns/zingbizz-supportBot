@@ -1,18 +1,20 @@
-import { auth } from "@/lib/auth";
+import { z } from "zod";
 import { del } from "@vercel/blob";
-import { getChatbotById } from "@/lib/db/queries/chatbots";
+import { requireOwnedChatbot, isAuthError } from "@/lib/auth-helpers";
 import { deleteDocumentsBySource, getSourceBlobUrl } from "@/lib/db/queries/documents";
+
+const bulkDeleteSchema = z.object({
+  sourceKeys: z.array(z.string().min(1)).min(1, "At least one sourceKey is required"),
+});
 
 export async function DELETE(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const session = await auth();
-  if (!session?.user?.id) {
-    return Response.json({ error: "Unauthorized" }, { status: 401 });
-  }
-
   const { id } = await params;
+
+  const authResult = await requireOwnedChatbot(id);
+  if (isAuthError(authResult)) return authResult.response;
 
   let body: unknown;
   try {
@@ -21,33 +23,25 @@ export async function DELETE(
     return Response.json({ error: "Invalid JSON body" }, { status: 400 });
   }
 
-  if (!Array.isArray((body as { sourceKeys?: unknown }).sourceKeys)) {
-    return Response.json({ error: "sourceKeys must be an array" }, { status: 400 });
+  const parsed = bulkDeleteSchema.safeParse(body);
+  if (!parsed.success) {
+    return Response.json(
+      { error: parsed.error.issues[0]?.message ?? "Invalid request body" },
+      { status: 400 }
+    );
   }
 
-  const sourceKeys = ((body as { sourceKeys: unknown[] }).sourceKeys).filter(
-    (k): k is string => typeof k === "string"
-  );
-
-  if (sourceKeys.length === 0) {
-    return Response.json({ error: "No valid sourceKeys provided" }, { status: 400 });
-  }
+  const { sourceKeys } = parsed.data;
 
   try {
-    const chatbot = await getChatbotById(id);
-    if (!chatbot) return Response.json({ error: "Not found" }, { status: 404 });
-    if (chatbot.userId !== session.user.id) {
-      return Response.json({ error: "Forbidden" }, { status: 403 });
-    }
-
     await Promise.all(
       sourceKeys.map(async (key) => {
         const blobUrl = await getSourceBlobUrl(id, key);
         await deleteDocumentsBySource(id, key);
         if (blobUrl) {
           try {
-            const parsed = new URL(blobUrl);
-            if (parsed.protocol === "https:" && parsed.hostname.endsWith(".vercel-storage.com")) {
+            const url = new URL(blobUrl);
+            if (url.protocol === "https:" && url.hostname.endsWith(".vercel-storage.com")) {
               await del(blobUrl);
             }
           } catch {

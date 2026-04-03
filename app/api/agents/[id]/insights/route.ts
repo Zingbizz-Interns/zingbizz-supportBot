@@ -1,5 +1,4 @@
-import { auth } from "@/lib/auth";
-import { getChatbotById } from "@/lib/db/queries/chatbots";
+import { requireOwnedChatbot, isAuthError } from "@/lib/auth-helpers";
 import {
   getTopQuestions,
   getUnansweredQuestions,
@@ -7,24 +6,18 @@ import {
   getDailyQuestionCounts,
 } from "@/lib/db/queries/queries";
 
+const CACHE_MAX_AGE_SECONDS = 30;
+
 export async function GET(
   _request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const session = await auth();
-  if (!session?.user?.id) {
-    return Response.json({ error: "Unauthorized" }, { status: 401 });
-  }
-
   const { id } = await params;
 
-  try {
-    const chatbot = await getChatbotById(id);
-    if (!chatbot) return Response.json({ error: "Not found" }, { status: 404 });
-    if (chatbot.userId !== session.user.id) {
-      return Response.json({ error: "Forbidden" }, { status: 403 });
-    }
+  const authResult = await requireOwnedChatbot(id);
+  if (isAuthError(authResult)) return authResult.response;
 
+  try {
     const [topQuestions, unansweredQuestions, stats, dailyCounts] = await Promise.all([
       getTopQuestions(id, 20),
       getUnansweredQuestions(id, 20),
@@ -32,7 +25,14 @@ export async function GET(
       getDailyQuestionCounts(id, 7),
     ]);
 
-    return Response.json({ topQuestions, unansweredQuestions, stats, dailyCounts });
+    return Response.json(
+      { topQuestions, unansweredQuestions, stats, dailyCounts },
+      {
+        headers: {
+          "Cache-Control": `private, max-age=${CACHE_MAX_AGE_SECONDS}`,
+        },
+      }
+    );
   } catch (error) {
     const msg = error instanceof Error ? error.message : "Internal server error";
     return Response.json({ error: msg }, { status: 500 });

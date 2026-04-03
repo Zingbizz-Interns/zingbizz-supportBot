@@ -7,10 +7,12 @@ export function streamChatResponse(
   systemPrompt: string,
   messages: ModelMessage[]
 ) {
-  console.log("\n--- [DEBUG] CHAT COMPLETION PAYLOAD ---");
-  console.log("System Prompt:\n", systemPrompt);
-  console.log("Messages:\n", JSON.stringify(messages, null, 2));
-  console.log("---------------------------------------\n");
+  if (process.env.NODE_ENV === "development") {
+    console.log("\n--- [DEBUG] CHAT COMPLETION PAYLOAD ---");
+    console.log("System Prompt:\n", systemPrompt);
+    console.log("Messages:\n", JSON.stringify(messages, null, 2));
+    console.log("---------------------------------------\n");
+  }
 
   return streamText({
     model,

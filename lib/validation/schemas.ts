@@ -13,7 +13,7 @@ export const createChatbotSchema = z.object({
   name: z.string().min(1, "name must be a non-empty string").trim().optional(),
   welcomeMessage: z.string().optional(),
   fallbackMessage: z.string().optional(),
-  brandColor: z.string().optional(),
+  brandColor: z.string().regex(/^#[0-9a-fA-F]{6}$/, "Must be a valid hex color (e.g. #2D3A31)").optional(),
 });
 
 export const updateChatbotSchema = z
@@ -21,7 +21,7 @@ export const updateChatbotSchema = z
     name: z.string().min(1, "name must be a non-empty string").trim().optional(),
     welcomeMessage: z.string().optional(),
     fallbackMessage: z.string().optional(),
-    brandColor: z.string().optional(),
+    brandColor: z.string().regex(/^#[0-9a-fA-F]{6}$/, "Must be a valid hex color (e.g. #2D3A31)").optional(),
   })
   .refine(
     (data) => Object.values(data).some((v) => v !== undefined),
