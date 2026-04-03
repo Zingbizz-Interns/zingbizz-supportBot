@@ -30,6 +30,10 @@ interface Source {
   created_at?: string | null;
 }
 
+type TrainingStatus = "idle" | "training" | "ready" | "error";
+
+const MAX_STATUS_FAILURES = 3;
+
 function sourceKey(source: Source): string {
   return source.url ?? source.file_name ?? source.title;
 }
@@ -47,6 +51,7 @@ export default function SourcesPage() {
   const router = useRouter();
   const [sources, setSources] = useState<Source[]>([]);
   const [chatbotId, setChatbotId] = useState<string | null>(null);
+  const [trainingStatus, setTrainingStatus] = useState<TrainingStatus>("idle");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [deletingKey, setDeletingKey] = useState<string | null>(null);
@@ -71,20 +76,29 @@ export default function SourcesPage() {
   const [fileInput, setFileInput] = useState<File | null>(null);
   const [uploadingFile, setUploadingFile] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
+  const pollFailureCountRef = useRef(0);
+
+  async function refreshSources(currentChatbotId: string) {
+    const sourcesRes = await fetch(`/api/agents/${currentChatbotId}/sources`, {
+      cache: "no-store",
+    });
+    if (!sourcesRes.ok) throw new Error("Failed to load sources");
+
+    const sourcesData = await sourcesRes.json();
+    setSources(sourcesData.sources ?? []);
+  }
 
   useEffect(() => {
     async function fetchData() {
       try {
-        const chatbotRes = await fetch("/api/agents");
+        const chatbotRes = await fetch("/api/agents", { cache: "no-store" });
         if (!chatbotRes.ok) throw new Error("Failed to load chatbot");
         const chatbotData = await chatbotRes.json();
         const bot = chatbotData.chatbot;
         if (!bot) { router.replace("/dashboard/chatbot/setup"); return; }
         setChatbotId(bot.id);
-        const sourcesRes = await fetch(`/api/agents/${bot.id}/sources`);
-        if (!sourcesRes.ok) throw new Error("Failed to load sources");
-        const sourcesData = await sourcesRes.json();
-        setSources(sourcesData.sources ?? []);
+        setTrainingStatus((bot.trainingStatus ?? "idle") as TrainingStatus);
+        await refreshSources(bot.id);
       } catch (err: unknown) {
         setError(err instanceof Error ? err.message : "Something went wrong");
       } finally {
@@ -93,6 +107,71 @@ export default function SourcesPage() {
     }
     fetchData();
   }, [router]);
+
+  useEffect(() => {
+    if (!chatbotId || trainingStatus !== "training") return;
+
+    pollFailureCountRef.current = 0;
+
+    let cancelled = false;
+    let timeoutId: ReturnType<typeof setTimeout> | null = null;
+    let controller: AbortController | null = null;
+
+    const pollStatus = async () => {
+      controller?.abort();
+      controller = new AbortController();
+
+      try {
+        const res = await fetch(`/api/agents/${chatbotId}/status`, {
+          signal: controller.signal,
+          cache: "no-store",
+        });
+        if (!res.ok) {
+          throw new Error(`Status check failed with ${res.status}`);
+        }
+
+        const data = await res.json() as { trainingStatus: TrainingStatus };
+        if (cancelled) return;
+
+        pollFailureCountRef.current = 0;
+        setTrainingStatus(data.trainingStatus);
+
+        if (data.trainingStatus === "ready") {
+          await refreshSources(chatbotId);
+          return;
+        }
+
+        if (data.trainingStatus === "error") {
+          setError("Training failed while adding the new source. Please try again.");
+          return;
+        }
+
+        timeoutId = setTimeout(pollStatus, 3000);
+      } catch (err) {
+        if (cancelled || (err instanceof DOMException && err.name === "AbortError")) {
+          return;
+        }
+
+        pollFailureCountRef.current += 1;
+
+        if (pollFailureCountRef.current >= MAX_STATUS_FAILURES) {
+          setTrainingStatus("error");
+          setError("Lost connection while checking training status. Refresh this page to confirm whether your source finished processing.");
+          return;
+        }
+
+        timeoutId = setTimeout(pollStatus, 3000);
+      }
+    };
+
+    void pollStatus();
+
+    return () => {
+      cancelled = true;
+      controller?.abort();
+      if (timeoutId) clearTimeout(timeoutId);
+    };
+  }, [chatbotId, trainingStatus]);
 
   function toggleSelect(key: string) {
     setSelected((prev) => {
@@ -185,6 +264,10 @@ export default function SourcesPage() {
 
   async function handleTrainUrl() {
     if (!chatbotId || selectedPages.size === 0) return;
+    if (trainingStatus === "training") {
+      setError("Training is already in progress. Please wait for it to finish before adding another source.");
+      return;
+    }
     setTraining(true);
     setError(null);
     try {
@@ -198,15 +281,11 @@ export default function SourcesPage() {
         const body = await res.json().catch(() => ({}));
         throw new Error((body as { error?: string }).error ?? "Training failed");
       }
+      setTrainingStatus("training");
       setShowAddDialog(false);
       setUrlInput("");
       setScrapedPages([]);
       setSelectedPages(new Set());
-      const sourcesRes = await fetch(`/api/agents/${chatbotId}/sources`);
-      if (sourcesRes.ok) {
-        const sourcesData = await sourcesRes.json();
-        setSources(sourcesData.sources ?? []);
-      }
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Training failed");
     } finally {
@@ -216,6 +295,10 @@ export default function SourcesPage() {
 
   async function handleUploadFile() {
     if (!chatbotId || !fileInput) return;
+    if (trainingStatus === "training") {
+      setError("Training is already in progress. Please wait for it to finish before adding another source.");
+      return;
+    }
     setUploadingFile(true);
     setError(null);
     try {
@@ -236,14 +319,10 @@ export default function SourcesPage() {
         const body = await trainRes.json().catch(() => ({}));
         throw new Error((body as { error?: string }).error ?? "Training failed");
       }
+      setTrainingStatus("training");
       setShowAddDialog(false);
       setFileInput(null);
       if (fileRef.current) fileRef.current.value = "";
-      const sourcesRes = await fetch(`/api/agents/${chatbotId}/sources`);
-      if (sourcesRes.ok) {
-        const sourcesData = await sourcesRes.json();
-        setSources(sourcesData.sources ?? []);
-      }
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Upload failed");
     } finally {
@@ -281,13 +360,18 @@ export default function SourcesPage() {
                 size="sm"
                 onClick={() => setShowBulkConfirm(true)}
                 loading={bulkDeleting}
+                disabled={trainingStatus === "training"}
                 className="text-[#C27B66] border-[#C27B66]/40 hover:bg-[#C27B66]/10 hover:border-[#C27B66]"
               >
                 <Trash2 size={14} strokeWidth={1.5} className="mr-1.5" />
                 Delete Selected ({selected.size})
               </Button>
             )}
-            <Button size="sm" onClick={() => setShowAddDialog(true)}>
+            <Button
+              size="sm"
+              onClick={() => setShowAddDialog(true)}
+              disabled={trainingStatus === "training"}
+            >
               <Plus size={14} strokeWidth={1.5} className="mr-1.5" />
               Add Source
             </Button>
@@ -295,6 +379,22 @@ export default function SourcesPage() {
         </div>
 
         {error && <p className="text-[#C27B66] text-sm font-sans">{error}</p>}
+
+        {trainingStatus === "training" && (
+          <Card hover={false} className="p-4 bg-[#F9F8F4] border-[#E6E2DA]">
+            <div className="flex items-start gap-3">
+              <Loader2 size={18} strokeWidth={1.5} className="animate-spin text-[#8C9A84] mt-0.5" />
+              <div>
+                <p className="font-sans font-medium text-sm text-[#2D3A31]">
+                  Training is in progress
+                </p>
+                <p className="font-sans text-sm text-[#8C9A84] mt-1">
+                  Your new source is still being processed. It will appear here automatically when training finishes.
+                </p>
+              </div>
+            </div>
+          </Card>
+        )}
 
         {sources.length === 0 ? (
           <Card hover={false} className="p-12 text-center">
@@ -305,7 +405,11 @@ export default function SourcesPage() {
             <p className="font-sans text-sm text-[#8C9A84] mb-4">
               Add your website or upload a document to get started.
             </p>
-            <Button size="sm" onClick={() => setShowAddDialog(true)}>
+            <Button
+              size="sm"
+              onClick={() => setShowAddDialog(true)}
+              disabled={trainingStatus === "training"}
+            >
               <Plus size={14} strokeWidth={1.5} className="mr-1.5" />
               Add Source
             </Button>
@@ -367,7 +471,7 @@ export default function SourcesPage() {
                     <span className="font-sans text-sm text-[#8C9A84]">{formatDate(source.created_at)}</span>
                     <button
                       onClick={() => handleDelete(source)}
-                      disabled={deletingKey === key || bulkDeleting}
+                      disabled={deletingKey === key || bulkDeleting || trainingStatus === "training"}
                       aria-label="Delete source"
                       className="flex items-center justify-center w-8 h-8 rounded-full text-[#8C9A84] hover:text-[#C27B66] hover:bg-[#C27B66]/10 transition-colors duration-200 disabled:opacity-40"
                     >
@@ -457,7 +561,12 @@ export default function SourcesPage() {
                     className="flex-1 rounded-full bg-[#F2F0EB] border-0 px-5 py-3 font-sans text-sm text-[#2D3A31] placeholder:text-[#8C9A84]/60 focus:outline-none focus:ring-2 focus:ring-[#8C9A84]"
                     onKeyDown={(e) => { if (e.key === "Enter") handleScrape(); }}
                   />
-                  <Button size="sm" onClick={handleScrape} loading={scraping} disabled={!urlInput.trim()}>
+                  <Button
+                    size="sm"
+                    onClick={handleScrape}
+                    loading={scraping}
+                    disabled={!urlInput.trim() || trainingStatus === "training"}
+                  >
                     Scrape
                   </Button>
                 </div>
@@ -488,7 +597,7 @@ export default function SourcesPage() {
                     <Button
                       onClick={handleTrainUrl}
                       loading={training}
-                      disabled={selectedPages.size === 0}
+                      disabled={selectedPages.size === 0 || trainingStatus === "training"}
                       className="w-full"
                     >
                       Train on {selectedPages.size} page{selectedPages.size !== 1 ? "s" : ""}
@@ -516,7 +625,12 @@ export default function SourcesPage() {
                   />
                 </div>
                 {fileInput && (
-                  <Button onClick={handleUploadFile} loading={uploadingFile} className="w-full">
+                  <Button
+                    onClick={handleUploadFile}
+                    loading={uploadingFile}
+                    disabled={trainingStatus === "training"}
+                    className="w-full"
+                  >
                     Upload & Train
                   </Button>
                 )}
