@@ -12,7 +12,8 @@ export async function GET(
 
   try {
     const chatbot = await recoverTrainingStatus(authResult.chatbot);
-    return Response.json({ trainingStatus: chatbot!.trainingStatus });
+    if (!chatbot) return Response.json({ error: "Not found" }, { status: 404 });
+    return Response.json({ trainingStatus: chatbot.trainingStatus });
   } catch (error) {
     const msg = error instanceof Error ? error.message : "Internal server error";
     return Response.json({ error: msg }, { status: 500 });

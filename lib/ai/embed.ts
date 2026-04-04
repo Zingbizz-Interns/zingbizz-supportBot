@@ -30,11 +30,12 @@ export async function embedTexts(texts: string[]): Promise<number[][]> {
 
   const allEmbeddings: number[][] = [];
 
-  console.log(`[embed] Starting embedding for ${texts.length} chunks...`);
+  const isDev = process.env.NODE_ENV === "development";
+  if (isDev) console.log(`[embed] Starting embedding for ${texts.length} chunks...`);
 
   for (let i = 0; i < texts.length; i += EMBEDDING_BATCH_SIZE) {
     const batch = texts.slice(i, i + EMBEDDING_BATCH_SIZE);
-    console.log(`[embed] Processing batch ${i / EMBEDDING_BATCH_SIZE + 1} (${batch.length} items)...`);
+    if (isDev) console.log(`[embed] Processing batch ${i / EMBEDDING_BATCH_SIZE + 1} (${batch.length} items)...`);
 
     try {
       const { embeddings } = await embedMany({
@@ -43,13 +44,13 @@ export async function embedTexts(texts: string[]): Promise<number[][]> {
       });
       embeddings.forEach(validateEmbeddingDimensions);
       allEmbeddings.push(...embeddings);
-      console.log(`[embed] Batch ${i / EMBEDDING_BATCH_SIZE + 1} completed.`);
+      if (isDev) console.log(`[embed] Batch ${i / EMBEDDING_BATCH_SIZE + 1} completed.`);
     } catch (error) {
       console.error(`[embed] Error in batch ${i / EMBEDDING_BATCH_SIZE + 1}:`, error);
       throw error;
     }
   }
 
-  console.log(`[embed] Finished embedding ${texts.length} chunks.`);
+  if (isDev) console.log(`[embed] Finished embedding ${texts.length} chunks.`);
   return allEmbeddings;
 }

@@ -126,14 +126,8 @@ export async function ragQuery({
   return { stream, fallbackText: null, sources, answered };
 }
 
-function escapePromptString(str: string): string {
-  return str.replace(/\\/g, "\\\\").replace(/"/g, '\\"');
-}
-
 function buildSystemPrompt(chatbotName: string, context: string, fallbackMessage: string | null): string {
-  const fallback = escapePromptString(
-    fallbackMessage || "I'm not sure about that. Please contact support for assistance."
-  );
+  const fallback = fallbackMessage || "I'm not sure about that. Please contact support for assistance.";
 
   return `You are ${chatbotName}, a helpful AI assistant. Answer questions using ONLY the provided context below. Be concise, friendly, and accurate.
 
