@@ -1,10 +1,9 @@
+import { handleUpload, type HandleUploadBody } from "@vercel/blob/client";
 import { requireAuth, isSessionError } from "@/lib/auth-helpers";
-import { put } from "@vercel/blob";
 import { uploadRateLimit } from "@/lib/rate-limit";
+import { ALLOWED_FILE_EXTENSIONS, MAX_FILE_SIZE } from "@/lib/uploads";
 
-const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
-const ALLOWED_TYPES = ["application/pdf", "text/plain", "text/markdown"];
-const ALLOWED_EXTENSIONS = /\.(pdf|txt|md)$/i;
+const ALLOWED_TYPES = ["application/pdf", "text/plain", "text/markdown", "text/*"];
 
 export async function POST(request: Request) {
   const session = await requireAuth();
@@ -18,74 +17,44 @@ export async function POST(request: Request) {
     );
   }
 
-  let formData: FormData;
+  let body: HandleUploadBody;
   try {
-    formData = await request.formData();
+    body = await request.json();
   } catch {
     return Response.json(
-      { error: "Request must be multipart/form-data" },
-      { status: 400 }
-    );
-  }
-
-  const file = formData.get("file");
-
-  if (!file || !(file instanceof File)) {
-    return Response.json(
-      { error: "A file field is required" },
-      { status: 400 }
-    );
-  }
-
-  // Validate file extension
-  if (!ALLOWED_EXTENSIONS.test(file.name)) {
-    return Response.json(
-      { error: "Only PDF and text files (.pdf, .txt, .md) are allowed" },
-      { status: 400 }
-    );
-  }
-
-  // Validate MIME type (with fallback for text types)
-  const mimeType = file.type || "application/octet-stream";
-  const isAllowedType =
-    ALLOWED_TYPES.includes(mimeType) ||
-    mimeType.startsWith("text/");
-
-  if (!isAllowedType) {
-    return Response.json(
-      { error: "Only PDF and text files are allowed" },
-      { status: 400 }
-    );
-  }
-
-  // Validate file size
-  if (file.size > MAX_FILE_SIZE) {
-    return Response.json(
-      { error: "File size must be 10MB or less" },
+      { error: "Request must be valid JSON" },
       { status: 400 }
     );
   }
 
   try {
-    const blob = await put(
-      `uploads/${session.userId}/${Date.now()}-${file.name}`,
-      file,
-      {
-        access: "private",
-        contentType: mimeType,
-      }
-    );
+    const jsonResponse = await handleUpload({
+      body,
+      request,
+      onBeforeGenerateToken: async (pathname) => {
+        if (!ALLOWED_FILE_EXTENSIONS.test(pathname)) {
+          throw new Error("Only PDF and text files (.pdf, .txt, .md) are allowed");
+        }
 
-    return Response.json(
-      {
-        key: blob.url,
-        filename: file.name,
-        size: file.size,
+        return {
+          allowedContentTypes: ALLOWED_TYPES,
+          maximumSizeInBytes: MAX_FILE_SIZE,
+          addRandomSuffix: false,
+          allowOverwrite: false,
+          tokenPayload: JSON.stringify({
+            userId: session.userId,
+            pathname,
+          }),
+        };
       },
-      { status: 201 }
-    );
+      onUploadCompleted: async () => {
+        // The client receives the blob URL immediately and passes it into training.
+      },
+    });
+
+    return Response.json(jsonResponse);
   } catch (error) {
-    const msg = error instanceof Error ? error.message : "Internal server error";
-    return Response.json({ error: msg }, { status: 500 });
+    const message = error instanceof Error ? error.message : "Internal server error";
+    return Response.json({ error: message }, { status: 400 });
   }
 }

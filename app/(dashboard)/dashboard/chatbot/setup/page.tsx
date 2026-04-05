@@ -1,11 +1,13 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
+import { upload } from "@vercel/blob/client";
 import Link from "next/link";
 import { Loader2, CheckCircle2, Globe, Upload, X, ChevronRight, RefreshCw } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { buildClientUploadPath, MAX_FILE_SIZE } from "@/lib/uploads";
 
 interface Page {
   url: string;
@@ -189,6 +191,16 @@ export default function ChatbotSetupPage() {
 
   function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
     const selected = Array.from(e.target.files ?? []);
+    const oversizedFile = selected.find((file) => file.size > MAX_FILE_SIZE);
+    if (oversizedFile) {
+      setError(`"${oversizedFile.name}" exceeds the 10MB upload limit.`);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
+      return;
+    }
+
+    setError("");
     setFiles((prev) => {
       const existingNames = new Set(prev.map((f) => f.name));
       const newFiles = selected.filter((f) => !existingNames.has(f.name));
@@ -251,22 +263,14 @@ export default function ChatbotSetupPage() {
       // Step 2: Upload files and collect keys
       const fileKeys: string[] = [...uploadedFileKeys];
       for (const file of files) {
-        const formData = new FormData();
-        formData.append("file", file);
-
-        const uploadRes = await fetch("/api/upload", {
-          method: "POST",
-          body: formData,
+        const uploadData = await upload(buildClientUploadPath(file.name), file, {
+          access: "private",
+          contentType: file.type || "application/octet-stream",
+          handleUploadUrl: "/api/upload",
+          multipart: true,
         });
-
-        if (!uploadRes.ok) {
-          const data = await uploadRes.json() as { error?: string };
-          throw new Error(data.error ?? `Failed to upload ${file.name}.`);
-        }
-
-        const uploadData = await uploadRes.json() as { key: string };
-        if (uploadData.key) {
-          fileKeys.push(uploadData.key);
+        if (uploadData.url) {
+          fileKeys.push(uploadData.url);
         }
       }
       setUploadedFileKeys(fileKeys);

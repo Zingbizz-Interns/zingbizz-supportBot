@@ -1,11 +1,13 @@
 "use client";
 
 import { useRef, useState } from "react";
+import { upload } from "@vercel/blob/client";
 import { Globe, Upload, X } from "lucide-react";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { buildClientUploadPath, MAX_FILE_SIZE } from "@/lib/uploads";
 import type { TrainingStatus } from "./types";
 
 interface AddSourceDialogProps {
@@ -102,21 +104,23 @@ export function AddSourceDialog({
       setError("Training is already in progress. Please wait for it to finish before adding another source.");
       return;
     }
+    if (fileInput.size > MAX_FILE_SIZE) {
+      setError("File size must be 10MB or less.");
+      return;
+    }
     setUploadingFile(true);
     setError(null);
     try {
-      const formData = new FormData();
-      formData.append("file", fileInput);
-      const uploadRes = await fetch("/api/upload", { method: "POST", body: formData });
-      if (!uploadRes.ok) {
-        const body = await uploadRes.json().catch(() => ({}));
-        throw new Error((body as { error?: string }).error ?? "Upload failed");
-      }
-      const uploadData = await uploadRes.json();
+      const uploadData = await upload(buildClientUploadPath(fileInput.name), fileInput, {
+        access: "private",
+        contentType: fileInput.type || "application/octet-stream",
+        handleUploadUrl: "/api/upload",
+        multipart: true,
+      });
       const trainRes = await fetch("/api/train", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ chatbotId, mode: "append", pages: [], fileKeys: [uploadData.key] }),
+        body: JSON.stringify({ chatbotId, mode: "append", pages: [], fileKeys: [uploadData.url] }),
       });
       if (!trainRes.ok) {
         const body = await trainRes.json().catch(() => ({}));
