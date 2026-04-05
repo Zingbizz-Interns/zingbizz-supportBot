@@ -8,7 +8,7 @@ import {
   ChartTooltip,
   ChartTooltipContent,
 } from "@/components/ui/chart";
-import { Bar, BarChart, XAxis, YAxis, ResponsiveContainer } from "recharts";
+import { Bar, BarChart, XAxis, YAxis } from "recharts";
 
 interface QuestionInsight {
   question: string;
@@ -146,20 +146,18 @@ export function InsightsPageClient({
                 </h2>
                 <Card hover={false} className="p-6">
                   <ChartContainer config={chartConfig} className="h-48 w-full">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <BarChart data={formattedDailyCounts} barGap={4}>
-                        <XAxis
-                          dataKey="date"
-                          tickLine={false}
-                          axisLine={false}
-                          tick={{ fontSize: 11, fill: "#8C9A84", fontFamily: "var(--font-sans)" }}
-                        />
-                        <YAxis hide />
-                        <ChartTooltip content={<ChartTooltipContent />} />
-                        <Bar dataKey="count" fill="#8C9A84" radius={[4, 4, 0, 0]} name="Questions" />
-                        <Bar dataKey="answered" fill="#2D3A31" radius={[4, 4, 0, 0]} name="Answered" />
-                      </BarChart>
-                    </ResponsiveContainer>
+                    <BarChart data={formattedDailyCounts} barGap={4}>
+                      <XAxis
+                        dataKey="date"
+                        tickLine={false}
+                        axisLine={false}
+                        tick={{ fontSize: 11, fill: "#8C9A84", fontFamily: "var(--font-sans)" }}
+                      />
+                      <YAxis hide />
+                      <ChartTooltip content={<ChartTooltipContent />} />
+                      <Bar dataKey="count" fill="#8C9A84" radius={[4, 4, 0, 0]} name="Questions" />
+                      <Bar dataKey="answered" fill="#2D3A31" radius={[4, 4, 0, 0]} name="Answered" />
+                    </BarChart>
                   </ChartContainer>
                 </Card>
               </section>
