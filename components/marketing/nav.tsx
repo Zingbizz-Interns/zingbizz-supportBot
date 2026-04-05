@@ -6,15 +6,16 @@ import { Menu, X } from "lucide-react";
 import { motion, AnimatePresence, useScroll, useTransform } from "framer-motion";
 
 const navLinks = [
-  { label: "Features", href: "#features" },
-  { label: "How it Works", href: "#how-it-works" },
-  { label: "Pricing", href: "#pricing" },
+  { label: "Features",    href: "#features"     },
+  { label: "How it Works",href: "#how-it-works" },
+  { label: "Pricing",     href: "#pricing"      },
 ];
 
 export function Nav() {
   const [mobileOpen, setMobileOpen] = useState(false);
 
   const { scrollY } = useScroll();
+  // Keep raw RGBA values here — framer-motion useTransform requires string interpolation
   const backgroundColor = useTransform(
     scrollY,
     [0, 50],
@@ -43,7 +44,7 @@ export function Nav() {
         {/* Logo */}
         <Link
           href="/"
-          className="font-[family-name:var(--font-serif)] text-xl font-bold text-[#2D3A31] tracking-tight hover:opacity-80 transition-opacity"
+          className="font-[family-name:var(--font-serif)] text-xl font-bold text-foreground tracking-tight hover:opacity-80 transition-opacity"
         >
           ZingDesk
         </Link>
@@ -57,10 +58,10 @@ export function Nav() {
               initial={{ opacity: 0, y: -10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.1 * i + 0.3, duration: 0.4 }}
-              className="relative inline-flex min-h-11 items-center text-sm font-[family-name:var(--font-sans)] text-[#2D3A31]/70 hover:text-[#2D3A31] transition-colors duration-300 group"
+              className="relative inline-flex min-h-11 items-center text-sm font-[family-name:var(--font-sans)] text-foreground/70 hover:text-foreground transition-colors duration-300 group"
             >
               {link.label}
-              <span className="absolute -bottom-1 left-1/2 h-[2px] w-0 -translate-x-1/2 bg-[#6A7A62] transition-all duration-300 group-hover:w-full rounded-full"></span>
+              <span className="absolute -bottom-1 left-1/2 h-[2px] w-0 -translate-x-1/2 bg-sage transition-all duration-300 group-hover:w-full rounded-full" />
             </motion.a>
           ))}
         </nav>
@@ -69,13 +70,13 @@ export function Nav() {
         <div className="hidden md:flex items-center gap-3">
           <Link
             href="/login"
-            className="inline-flex min-h-11 items-center text-sm font-[family-name:var(--font-sans)] text-[#2D3A31]/70 hover:text-[#2D3A31] transition-all duration-300 px-4 py-2 hover:bg-[#8C9A84]/10 rounded-full"
+            className="inline-flex min-h-11 items-center text-sm font-[family-name:var(--font-sans)] text-foreground/70 hover:text-foreground transition-all duration-300 px-4 py-2 hover:bg-sage-light/10 rounded-full"
           >
             Sign In
           </Link>
           <Link
             href="/signup"
-            className="inline-flex min-h-11 items-center justify-center rounded-full bg-[#2D3A31] text-white px-6 py-2.5 text-xs font-[family-name:var(--font-sans)] uppercase tracking-widest transition-all duration-300 hover:bg-[#3d5245] hover:-translate-y-0.5 active:scale-95"
+            className="inline-flex min-h-11 items-center justify-center rounded-full bg-foreground text-background px-6 py-2.5 text-xs font-[family-name:var(--font-sans)] uppercase tracking-widest transition-all duration-300 hover:bg-primary-hover hover:-translate-y-0.5 active:scale-95"
           >
             Get Started
           </Link>
@@ -84,7 +85,7 @@ export function Nav() {
         {/* Mobile hamburger */}
         <button
           onClick={() => setMobileOpen(true)}
-          className="md:hidden p-2 text-[#2D3A31] active:scale-95 transition-transform"
+          className="md:hidden p-2 text-foreground active:scale-95 transition-transform"
           aria-label="Open menu"
         >
           <Menu strokeWidth={1.5} size={24} />
@@ -99,15 +100,15 @@ export function Nav() {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }}
             transition={{ duration: 0.3, ease: "easeInOut" }}
-            className="fixed inset-0 z-50 bg-[#F9F8F4] flex flex-col p-8"
+            className="fixed inset-0 z-50 bg-background flex flex-col p-8"
           >
             <div className="flex justify-between items-center mb-12">
-              <span className="font-[family-name:var(--font-serif)] text-xl font-bold text-[#2D3A31]">
+              <span className="font-[family-name:var(--font-serif)] text-xl font-bold text-foreground">
                 ZingDesk
               </span>
               <button
                 onClick={() => setMobileOpen(false)}
-                className="p-2 text-[#2D3A31] active:scale-95 transition-transform"
+                className="p-2 text-foreground active:scale-95 transition-transform"
                 aria-label="Close menu"
               >
                 <X strokeWidth={1.5} size={24} />
@@ -122,7 +123,7 @@ export function Nav() {
                   initial={{ opacity: 0, x: -20 }}
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ delay: 0.1 * i + 0.1 }}
-                  className="font-[family-name:var(--font-serif)] text-3xl text-[#2D3A31] hover:text-[#8C9A84] transition-colors duration-300 inline-block w-max"
+                  className="font-[family-name:var(--font-serif)] text-3xl text-foreground hover:text-sage-light transition-colors duration-300 inline-block w-max"
                 >
                   {link.label}
                 </motion.a>
@@ -132,14 +133,14 @@ export function Nav() {
               <Link
                 href="/login"
                 onClick={() => setMobileOpen(false)}
-                className="inline-flex items-center justify-center rounded-full border border-[#8C9A84] text-[#8C9A84] px-8 py-3 text-sm font-[family-name:var(--font-sans)] uppercase tracking-widest transition-all duration-300 hover:bg-[#8C9A84] hover:text-white active:scale-95"
+                className="inline-flex items-center justify-center rounded-full border border-sage-light text-sage-light px-8 py-3 text-sm font-[family-name:var(--font-sans)] uppercase tracking-widest transition-all duration-300 hover:bg-sage-light hover:text-background active:scale-95"
               >
                 Sign In
               </Link>
               <Link
                 href="/signup"
                 onClick={() => setMobileOpen(false)}
-                className="inline-flex items-center justify-center rounded-full bg-[#2D3A31] text-white px-8 py-3 text-sm font-[family-name:var(--font-sans)] uppercase tracking-widest transition-all duration-300 hover:bg-[#3d5245] hover:shadow-lg active:scale-95"
+                className="inline-flex items-center justify-center rounded-full bg-foreground text-background px-8 py-3 text-sm font-[family-name:var(--font-sans)] uppercase tracking-widest transition-all duration-300 hover:bg-primary-hover hover:shadow-lg active:scale-95"
               >
                 Get Started Free
               </Link>

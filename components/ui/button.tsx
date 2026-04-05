@@ -6,18 +6,18 @@ import { cn } from "@/lib/utils";
 
 // buttonVariants exported for use by alert-dialog and other shadcn primitives
 export const buttonVariants = cva(
-  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-full font-sans text-sm uppercase tracking-widest transition-colors duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#8C9A84] focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50",
+  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-full font-sans text-sm uppercase tracking-widest transition-colors duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sage-light focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50",
   {
     variants: {
       variant: {
-        primary: "bg-[#2D3A31] text-white hover:bg-[#3d5245]",
-        secondary: "border border-[#8C9A84] text-[#8C9A84] hover:bg-[#8C9A84] hover:text-white",
+        primary: "bg-foreground text-background hover:bg-primary-hover",
+        secondary: "border border-sage-light text-sage-light hover:bg-sage-light hover:text-background",
         // shadcn-compat aliases used internally by alert-dialog etc.
-        default: "bg-[#2D3A31] text-white hover:bg-[#3d5245]",
-        destructive: "bg-[#C27B66] text-white hover:bg-[#b06a55]",
-        outline: "border border-[#E6E2DA] text-[#2D3A31] hover:bg-[#F2F0EB]",
-        ghost: "hover:bg-[#F2F0EB] text-[#2D3A31]",
-        link: "text-[#2D3A31] underline-offset-4 hover:underline",
+        default: "bg-foreground text-background hover:bg-primary-hover",
+        destructive: "bg-terracotta text-background hover:bg-terracotta/80",
+        outline: "border border-border text-foreground hover:bg-muted",
+        ghost: "hover:bg-muted text-foreground",
+        link: "text-foreground underline-offset-4 hover:underline",
       },
       size: {
         sm: "px-5 py-2 text-xs min-h-[36px]",

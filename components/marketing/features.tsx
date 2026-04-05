@@ -27,32 +27,29 @@ const features: Feature[] = [
   },
   {
     number: "04",
-    title: "Instant Answers",
-    description: "Visitors get accurate answers in seconds — no waiting, no scrolling through docs."
+    title: "Always Available",
+    description: "Visitors get accurate answers around the clock — no waiting, no scrolling through docs, no support tickets."
   }
 ];
 
 export function Features() {
   const containerRef = useRef<HTMLDivElement>(null);
-  
+
   return (
-    <section id="features" className="py-24 bg-[#2D3A31] text-[#F9F8F4] relative selection:bg-[#6A7A62] selection:text-white">
+    <section id="features" className="py-24 bg-foreground text-background relative selection:bg-sage selection:text-background">
       <div className="max-w-7xl mx-auto px-4 md:px-8 mb-16 md:mb-32">
         <h2 className="font-[family-name:var(--font-serif)] text-5xl md:text-7xl font-medium text-balance mb-8">
-          Not another <em className="text-[#8C9A84] italic">widget</em>.<br />
-          An <span className="underline decoration-[#9E5946] underline-offset-8">intelligent</span> agent.
+          Not another <em className="text-sage-light italic">widget</em>.<br />
+          An <span className="underline decoration-terracotta underline-offset-8">intelligent</span> agent.
         </h2>
       </div>
 
       <div ref={containerRef} className="max-w-7xl mx-auto px-4 md:px-8 flex flex-col gap-0">
         {features.map((feature) => (
-          <FeatureCard 
-            key={feature.number} 
-            feature={feature} 
-          />
+          <FeatureCard key={feature.number} feature={feature} />
         ))}
       </div>
-      
+
       <div className="h-24 md:h-48" />
     </section>
   );
@@ -60,35 +57,35 @@ export function Features() {
 
 function FeatureCard({ feature }: { feature: Feature }) {
   const cardRef = useRef<HTMLDivElement>(null);
-  
+
   const { scrollYProgress } = useScroll({
     target: cardRef,
     offset: ["start end", "start 20%"]
   });
 
   const opacity = useTransform(scrollYProgress, [0, 1], [0.3, 1]);
-  const scale = useTransform(scrollYProgress, [0, 1], [0.95, 1]);
+  const scale   = useTransform(scrollYProgress, [0, 1], [0.95, 1]);
 
   return (
-    <motion.div 
+    <motion.div
       ref={cardRef}
       style={{ opacity, scale }}
-      className="sticky top-20 md:top-24 w-full min-h-[40vh] md:min-h-[50vh] bg-[#F9F8F4] text-[#2D3A31] border-x border-t border-[#DCCFC2] overflow-hidden flex flex-col justify-between p-8 md:p-16"
+      className="sticky top-20 md:top-24 w-full min-h-[40vh] md:min-h-[50vh] bg-background text-foreground border-x border-t border-clay overflow-hidden flex flex-col justify-between p-8 md:p-16"
       initial={{ y: 50, opacity: 0 }}
       whileInView={{ y: 0, opacity: 1 }}
       viewport={{ once: true, margin: "-100px" }}
       transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
     >
       <div className="flex flex-col md:flex-row justify-between items-start gap-12 w-full h-full">
-        <div className="font-[family-name:var(--font-sans)] font-bold text-[8rem] md:text-[14rem] leading-none text-[#E6E2DA] tracking-tighter">
+        <div className="font-[family-name:var(--font-sans)] font-bold text-[8rem] md:text-[14rem] leading-none text-stone tracking-tighter">
           {feature.number}
         </div>
-        
+
         <div className="max-w-xl self-end md:-mt-8 relative z-10 flex flex-col">
-          <h3 className="font-[family-name:var(--font-serif)] text-3xl md:text-5xl font-medium text-[#2D3A31] mb-6">
+          <h3 className="font-[family-name:var(--font-serif)] text-3xl md:text-5xl font-medium text-foreground mb-6">
             {feature.title}
           </h3>
-          <p className="font-[family-name:var(--font-sans)] text-[#6A7A62] text-xl md:text-2xl leading-relaxed text-balance">
+          <p className="font-[family-name:var(--font-sans)] text-sage text-xl md:text-2xl leading-relaxed text-balance">
             {feature.description}
           </p>
         </div>

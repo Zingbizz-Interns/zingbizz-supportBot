@@ -41,9 +41,9 @@ export function CinematicButton({
   const baseClasses = cn(
     "relative inline-flex min-h-11 items-center justify-center overflow-hidden rounded-full px-10 py-4 font-[family-name:var(--font-sans)] text-sm uppercase tracking-widest transition-colors duration-300 group",
     {
-      "bg-[#2D3A31] text-white hover:bg-[#3d5245]": variant === "primary",
-      "border border-[#6A7A62] text-[#6A7A62] hover:bg-[#6A7A62] hover:text-white": variant === "secondary",
-      "border border-[#E6E2DA] text-[#2D3A31] hover:bg-[#F2F0EB]": variant === "outline",
+      "bg-foreground text-background hover:bg-primary-hover": variant === "primary",
+      "border border-sage text-sage hover:bg-sage hover:text-background": variant === "secondary",
+      "border border-border text-foreground hover:bg-muted": variant === "outline",
       "opacity-50 pointer-events-none": disabled
     },
     className
@@ -53,10 +53,10 @@ export function CinematicButton({
     <>
       <span className="relative z-10">{children}</span>
       {variant === "primary" && (
-        <span className="absolute inset-0 z-0 bg-[#3d5245] translate-y-[100%] rounded-full transition-transform duration-500 ease-out group-hover:translate-y-0" />
+        <span className="absolute inset-0 z-0 bg-primary-hover translate-y-[100%] rounded-full transition-transform duration-500 ease-out group-hover:translate-y-0" />
       )}
       {variant === "secondary" && (
-        <span className="absolute inset-0 z-0 bg-[#6A7A62] translate-y-[100%] rounded-full transition-transform duration-500 ease-out group-hover:translate-y-0" />
+        <span className="absolute inset-0 z-0 bg-sage translate-y-[100%] rounded-full transition-transform duration-500 ease-out group-hover:translate-y-0" />
       )}
     </>
   );

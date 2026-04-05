@@ -29,18 +29,18 @@ const steps: Step[] = [
 
 export function HowItWorks() {
   const containerRef = useRef<HTMLDivElement>(null);
-  
+
   return (
-    <section id="how-it-works" ref={containerRef} className="py-24 md:py-48 bg-[#E6E2DA] text-[#2D3A31] border-y border-[#DCCFC2]">
+    <section id="how-it-works" ref={containerRef} className="py-24 md:py-48 bg-stone text-foreground border-y border-clay">
       <div className="max-w-[1400px] mx-auto px-4 md:px-8">
         <div className="flex flex-col lg:flex-row gap-16 lg:gap-32 items-start">
-          
+
           <div className="lg:sticky lg:top-32 lg:w-1/3 z-10 w-full mb-12 lg:mb-0">
             <h2 className="font-[family-name:var(--font-serif)] text-5xl md:text-7xl font-bold leading-none mb-6">
               Three steps.<br />
-              <em className="font-light italic text-[#9E5946]">Zero code.</em>
+              <em className="font-light italic text-terracotta">Zero code.</em>
             </h2>
-            <p className="font-[family-name:var(--font-sans)] text-[#6A7A62] text-xl max-w-sm">
+            <p className="font-[family-name:var(--font-sans)] text-sage text-xl max-w-sm">
               We abstracted away the complex machine learning infrastructure. You just paste a link.
             </p>
           </div>
@@ -50,7 +50,7 @@ export function HowItWorks() {
               <StepItem key={step.number} step={step} />
             ))}
           </div>
-          
+
         </div>
       </div>
     </section>
@@ -64,23 +64,23 @@ function StepItem({ step }: { step: Step }) {
     offset: ["start 80%", "start 20%"]
   });
 
-  const y = useTransform(scrollYProgress, [0, 1], [100, 0]);
+  const y       = useTransform(scrollYProgress, [0, 1], [100, 0]);
   const opacity = useTransform(scrollYProgress, [0, 1], [0.1, 1]);
 
   return (
-    <motion.div 
-      ref={itemRef} 
+    <motion.div
+      ref={itemRef}
       style={{ y, opacity }}
       className="flex flex-col md:flex-row gap-8 md:gap-16 items-start"
     >
-      <div className="font-[family-name:var(--font-sans)] text-6xl md:text-8xl font-black text-[#DCCFC2] tracking-tighter self-start pt-2">
+      <div className="font-[family-name:var(--font-sans)] text-6xl md:text-8xl font-black text-clay tracking-tighter self-start pt-2">
         {step.number}
       </div>
       <div className="flex flex-col">
         <h3 className="font-[family-name:var(--font-serif)] text-3xl md:text-4xl font-semibold mb-4">
           {step.title}
         </h3>
-        <p className="font-[family-name:var(--font-sans)] text-[#6A7A62] text-xl md:text-2xl leading-relaxed max-w-xl">
+        <p className="font-[family-name:var(--font-sans)] text-sage text-xl md:text-2xl leading-relaxed max-w-xl">
           {step.description}
         </p>
       </div>

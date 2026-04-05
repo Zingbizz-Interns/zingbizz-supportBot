@@ -31,31 +31,38 @@
 }
 
 @theme {
-  /* Botanical Color Palette */
-  --color-background: #F9F8F4;
-  --color-foreground: #2D3A31;
-  --color-primary: #2D3A31;
-  --color-primary-hover: #3d5245;
-  --color-sage: #6A7A62; /* Darkened from #8C9A84 for WCAG AA */
-  --color-sage-light: #8C9A84; /* Maintained old sage as light variant */
-  --color-clay: #DCCFC2;
-  --color-stone: #E6E2DA;
-  --color-terracotta: #9E5946; /* Darkened from #C27B66 for WCAG AA */
-  --color-surface: #FFFFFF;
-  --color-muted: #F2F0EB;
+  /* ── Botanical Color Palette ─────────────────────────────────────────── */
 
-  /* Typography */
+  /* Surfaces & backgrounds */
+  --color-background: #F9F8F4;   /* warm alabaster — page bg */
+  --color-surface:    #FFFFFF;   /* pure white — card bg */
+  --color-muted:      #F2F0EB;   /* soft off-white — input bg, ghost areas */
+  --color-stone:      #E6E2DA;   /* warm stone — subtle section bg */
+  --color-clay:       #DCCFC2;   /* mushroom — borders, dividers */
+
+  /* Text & interactive */
+  --color-foreground:     #2D3A31; /* deep forest green — primary text */
+  --color-primary:        #2D3A31; /* alias for foreground */
+  --color-primary-hover:  #3d5245; /* slightly lighter forest — hover state */
+  --color-sage:           #6A7A62; /* darkened sage — WCAG AA compliant body text */
+  --color-sage-light:     #8C9A84; /* original sage — decorative, icons, borders */
+  --color-terracotta:     #9E5946; /* darkened terracotta — WCAG AA, CTA accents */
+
+  /* Semantic alias — use border-border for all standard dividers */
+  --color-border: #E6E2DA;
+
+  /* ── Typography ──────────────────────────────────────────────────────── */
   --font-serif: "Playfair Display", Georgia, serif;
-  --font-sans: "Source Sans 3", system-ui, sans-serif;
+  --font-sans:  "Source Sans 3", system-ui, sans-serif;
 
-  /* Shadows (very soft, diffused) */
-  --shadow-soft: 0 4px 6px -1px rgba(45, 58, 49, 0.05);
+  /* ── Shadows (very soft, diffused — botanical shadow DNA) ────────────── */
+  --shadow-soft:   0 4px 6px -1px rgba(45, 58, 49, 0.05);
   --shadow-medium: 0 10px 15px -3px rgba(45, 58, 49, 0.05);
-  --shadow-large: 0 20px 40px -10px rgba(45, 58, 49, 0.05);
-  --shadow-xl: 0 25px 50px -12px rgba(45, 58, 49, 0.15);
+  --shadow-large:  0 20px 40px -10px rgba(45, 58, 49, 0.05);
+  --shadow-xl:     0 25px 50px -12px rgba(45, 58, 49, 0.15);
 
-  /* Border radius */
-  --radius-card: 24px;
+  /* ── Border radius ───────────────────────────────────────────────────── */
+  --radius-card:   24px;
   --radius-button: 9999px;
 }
 
