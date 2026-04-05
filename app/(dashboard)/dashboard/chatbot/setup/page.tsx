@@ -27,6 +27,7 @@ const MAX_STATUS_FAILURES = 3;
 
 export default function ChatbotSetupPage() {
   const [step, setStep] = useState<Step>("setup");
+  const [initializing, setInitializing] = useState(true);
   const [url, setUrl] = useState("");
   const [scraping, setScraping] = useState(false);
   const [scrapedPages, setScrapedPages] = useState<Page[]>([]);
@@ -45,7 +46,7 @@ export default function ChatbotSetupPage() {
 
     async function fetchChatbot() {
       try {
-        const res = await fetch("/api/agents");
+        const res = await fetch("/api/agents", { cache: "no-store" });
         if (!res.ok || cancelled) return;
 
         const data = await res.json() as { chatbot: Chatbot | null };
@@ -60,6 +61,10 @@ export default function ChatbotSetupPage() {
         }
       } catch (err) {
         console.error("Failed to fetch chatbot", err);
+      } finally {
+        if (!cancelled) {
+          setInitializing(false);
+        }
       }
     }
 
@@ -133,6 +138,28 @@ export default function ChatbotSetupPage() {
       if (timeoutId) clearTimeout(timeoutId);
     };
   }, [step, chatbot?.id]);
+
+  if (initializing) {
+    return (
+      <div className="max-w-3xl mx-auto px-4 py-8 md:py-12">
+        <Card hover={false} className="text-center py-16">
+          <div className="flex flex-col items-center gap-6">
+            <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-[#F2F0EB]">
+              <Loader2 size={32} strokeWidth={1.5} className="text-[#2D3A31] animate-spin" />
+            </div>
+            <div>
+              <h2 className="font-serif text-2xl font-semibold text-[#2D3A31] mb-2">
+                Loading chatbot setup&hellip;
+              </h2>
+              <p className="font-sans text-[#8C9A84] text-base max-w-sm mx-auto">
+                Checking your chatbot status.
+              </p>
+            </div>
+          </div>
+        </Card>
+      </div>
+    );
+  }
 
   async function handleScrape() {
     const trimmedUrl = url.trim();
