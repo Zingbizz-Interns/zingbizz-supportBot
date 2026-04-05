@@ -38,22 +38,23 @@ export function BottomNav({ canCustomize }: { canCustomize: boolean }) {
         {navItems.map((item) => {
           const Icon = item.icon;
           const active = isActive(item.href);
+          const isDisabled = item.label === "Customize" && !canCustomize;
 
           return (
             <Link
               key={item.label}
-              href={item.href}
+              href={isDisabled ? "#" : item.href}
               title={
-                item.label === "Customize" && !canCustomize
+                isDisabled
                   ? "Complete setup to unlock customization"
                   : undefined
               }
-              aria-disabled={item.label === "Customize" && !canCustomize}
+              aria-disabled={isDisabled}
               className={`flex min-h-11 min-w-11 flex-col items-center justify-center gap-1.5 rounded-xl px-3 py-2 transition-all duration-200 ${
                 active
                   ? "bg-foreground text-background"
                   : "text-foreground hover:bg-stone"
-              }`}
+              } ${isDisabled ? "pointer-events-none opacity-50" : ""}`}
             >
               <Icon size={20} strokeWidth={1.5} />
               <span className="text-[10px] font-[family-name:var(--font-sans)] uppercase tracking-widest font-bold leading-none">
