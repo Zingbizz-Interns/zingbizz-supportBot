@@ -1,7 +1,8 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { CinematicButton } from "@/components/ui/cinematic-button";
+import Link from "next/link";
+import { buttonVariants } from "@/components/ui/button";
 
 const features = [
   "1 AI chatbot for your website",
@@ -52,13 +53,17 @@ export function Pricing() {
           </ul>
 
           <div className="w-full lg:w-1/3 flex justify-end">
-            <CinematicButton
+            <Link
               href="/signup"
-              variant="outline"
-              className="w-full md:w-auto text-xl md:text-2xl px-12 py-12 rounded-full border border-background text-background hover:bg-background hover:text-terracotta"
+              className={buttonVariants({
+                variant: "outline",
+                size: "lg",
+                className:
+                  "w-full md:w-auto text-xl md:text-2xl px-12 py-12 rounded-full border border-background text-background hover:bg-background hover:text-terracotta",
+              })}
             >
               Start for free
-            </CinematicButton>
+            </Link>
           </div>
         </div>
 

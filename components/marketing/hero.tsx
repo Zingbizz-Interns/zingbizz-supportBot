@@ -1,8 +1,9 @@
 "use client";
 
 import { motion, useScroll, useTransform } from "framer-motion";
-import { CinematicButton } from "@/components/ui/cinematic-button";
+import Link from "next/link";
 import { useRef } from "react";
+import { buttonVariants } from "@/components/ui/button";
 
 export function Hero() {
   const targetRef = useRef<HTMLDivElement>(null);
@@ -58,12 +59,18 @@ export function Hero() {
             </div>
 
             <div className="mt-10 flex flex-col gap-6 sm:flex-row">
-              <CinematicButton href="/signup" variant="primary">
+              <Link
+                href="/signup"
+                className={buttonVariants({ size: "lg", variant: "primary" })}
+              >
                 Start for free
-              </CinematicButton>
-              <CinematicButton href="#how-it-works" variant="secondary">
+              </Link>
+              <Link
+                href="#how-it-works"
+                className={buttonVariants({ size: "lg", variant: "secondary" })}
+              >
                 See how it works
-              </CinematicButton>
+              </Link>
             </div>
           </div>
         </motion.div>
