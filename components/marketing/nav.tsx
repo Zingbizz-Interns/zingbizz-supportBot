@@ -11,8 +11,11 @@ const navLinks = [
   { label: "Pricing",     href: "#pricing"      },
 ];
 
-export function Nav() {
+export function Nav({ isLoggedIn = false }: { isLoggedIn?: boolean }) {
   const [mobileOpen, setMobileOpen] = useState(false);
+  const primaryHref = isLoggedIn ? "/dashboard" : "/signup";
+  const primaryLabel = isLoggedIn ? "Open Dashboard" : "Get Started";
+  const mobilePrimaryLabel = isLoggedIn ? "Open Dashboard" : "Get Started Free";
 
   const { scrollY } = useScroll();
   // Keep raw RGBA values here — framer-motion useTransform requires string interpolation
@@ -68,17 +71,19 @@ export function Nav() {
 
         {/* Desktop CTAs */}
         <div className="hidden md:flex items-center gap-3">
+          {!isLoggedIn && (
+            <Link
+              href="/login"
+              className="inline-flex min-h-11 items-center text-sm font-[family-name:var(--font-sans)] text-foreground/70 hover:text-foreground transition-all duration-300 px-4 py-2 hover:bg-sage-light/10 rounded-full"
+            >
+              Sign In
+            </Link>
+          )}
           <Link
-            href="/login"
-            className="inline-flex min-h-11 items-center text-sm font-[family-name:var(--font-sans)] text-foreground/70 hover:text-foreground transition-all duration-300 px-4 py-2 hover:bg-sage-light/10 rounded-full"
-          >
-            Sign In
-          </Link>
-          <Link
-            href="/signup"
+            href={primaryHref}
             className="inline-flex min-h-11 items-center justify-center rounded-full bg-foreground text-background px-6 py-2.5 text-xs font-[family-name:var(--font-sans)] uppercase tracking-widest transition-all duration-300 hover:bg-primary-hover hover:-translate-y-0.5 active:scale-95"
           >
-            Get Started
+            {primaryLabel}
           </Link>
         </div>
 
@@ -130,19 +135,21 @@ export function Nav() {
               ))}
             </nav>
             <div className="mt-auto flex flex-col gap-4">
+              {!isLoggedIn && (
+                <Link
+                  href="/login"
+                  onClick={() => setMobileOpen(false)}
+                  className="inline-flex items-center justify-center rounded-full border border-sage-light text-sage-light px-8 py-3 text-sm font-[family-name:var(--font-sans)] uppercase tracking-widest transition-all duration-300 hover:bg-sage-light hover:text-background active:scale-95"
+                >
+                  Sign In
+                </Link>
+              )}
               <Link
-                href="/login"
-                onClick={() => setMobileOpen(false)}
-                className="inline-flex items-center justify-center rounded-full border border-sage-light text-sage-light px-8 py-3 text-sm font-[family-name:var(--font-sans)] uppercase tracking-widest transition-all duration-300 hover:bg-sage-light hover:text-background active:scale-95"
-              >
-                Sign In
-              </Link>
-              <Link
-                href="/signup"
+                href={primaryHref}
                 onClick={() => setMobileOpen(false)}
                 className="inline-flex items-center justify-center rounded-full bg-foreground text-background px-8 py-3 text-sm font-[family-name:var(--font-sans)] uppercase tracking-widest transition-all duration-300 hover:bg-primary-hover hover:shadow-lg active:scale-95"
               >
-                Get Started Free
+                {mobilePrimaryLabel}
               </Link>
             </div>
           </motion.div>

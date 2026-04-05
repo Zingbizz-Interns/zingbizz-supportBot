@@ -1,4 +1,4 @@
-import { auth } from "@/lib/auth";
+import { requireAuth, isSessionError } from "@/lib/auth-helpers";
 import { getChatbotById, updateChatbot, deleteChatbot } from "@/lib/db/queries/chatbots";
 import { parseBody } from "@/lib/validation/parse";
 import { updateChatbotSchema } from "@/lib/validation/schemas";
@@ -14,13 +14,11 @@ export async function PATCH(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const session = await auth();
-  if (!session?.user?.id) {
-    return Response.json({ error: "Unauthorized" }, { status: 401 });
-  }
+  const session = await requireAuth();
+  if (isSessionError(session)) return session.response;
 
   const { id } = await params;
-  const { chatbot, error, status } = await getAuthorizedChatbot(id, session.user.id);
+  const { chatbot, error, status } = await getAuthorizedChatbot(id, session.userId);
   if (!chatbot) return Response.json({ error }, { status });
 
   let body: unknown;
@@ -54,13 +52,11 @@ export async function DELETE(
   _request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const session = await auth();
-  if (!session?.user?.id) {
-    return Response.json({ error: "Unauthorized" }, { status: 401 });
-  }
+  const session = await requireAuth();
+  if (isSessionError(session)) return session.response;
 
   const { id } = await params;
-  const { chatbot, error, status } = await getAuthorizedChatbot(id, session.user.id);
+  const { chatbot, error, status } = await getAuthorizedChatbot(id, session.userId);
   if (!chatbot) return Response.json({ error }, { status });
 
   try {

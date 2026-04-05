@@ -2,6 +2,27 @@ import { auth } from "@/lib/auth";
 import { getChatbotById } from "@/lib/db/queries/chatbots";
 import type { Chatbot } from "@/lib/db/schema";
 
+interface SessionResult {
+  userId: string;
+  email: string;
+}
+
+/**
+ * Authenticate the current session.
+ * Returns the userId on success, or a pre-built 401 Response.
+ */
+export async function requireAuth(): Promise<SessionResult | AuthError> {
+  const session = await auth();
+  if (!session?.user?.id) {
+    return { response: Response.json({ error: "Unauthorized" }, { status: 401 }) };
+  }
+  return { userId: session.user.id, email: session.user.email ?? "" };
+}
+
+export function isSessionError(result: SessionResult | AuthError): result is AuthError {
+  return "response" in result;
+}
+
 interface AuthResult {
   chatbot: Chatbot;
   session: { user: { id: string; email: string } };

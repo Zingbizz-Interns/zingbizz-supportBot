@@ -3,6 +3,7 @@ import { streamChatResponse } from "./chat";
 import { searchDocuments } from "../db/queries/documents";
 import { logQuery } from "../db/queries/queries";
 import { getChatbotById } from "../db/queries/chatbots";
+import { normalizeText } from "../utils";
 import type { ModelMessage } from "ai";
 import type { DocumentMetadata } from "../db/schema";
 
@@ -144,22 +145,11 @@ CONTEXT:
 ${context ? context : "No context available. Only answer greetings."}`;
 }
 
-function normalizeRuntimeText(text: string): string {
-  return text
-    .replace(/\u00a0/g, " ")
-    .replace(/\t/g, " ")
-    .replace(/[ ]{2,}/g, " ")
-    .replace(/\s+\n/g, "\n")
-    .replace(/\n\s+/g, "\n")
-    .replace(/\n{3,}/g, "\n\n")
-    .trim();
-}
-
 function sanitizeRetrievedContent(text: string): string {
-  const original = normalizeRuntimeText(text);
+  const original = normalizeText(text);
   if (!original) return original;
 
-  const cleaned = normalizeRuntimeText(
+  const cleaned = normalizeText(
     RUNTIME_NOISE_PATTERNS.reduce((value, pattern) => value.replace(pattern, " "), original)
   );
 

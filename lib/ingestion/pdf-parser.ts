@@ -1,4 +1,5 @@
 import { createRequire } from "node:module";
+import { normalizeText } from "@/lib/utils";
 
 const MAX_EXTRACTED_TEXT_CHARS = 100_000;
 const require = createRequire(import.meta.url);
@@ -56,12 +57,7 @@ export async function extractTextFromPdf(buffer: Buffer): Promise<string> {
 
   try {
     const result = await parser.getText();
-    return clampExtractedText(
-      result.text
-        .replace(/\t/g, " ")
-        .replace(/[ ]{2,}/g, " ")
-        .replace(/\n{3,}/g, "\n\n")
-    );
+    return clampExtractedText(normalizeText(result.text));
   } finally {
     await parser.destroy();
   }
@@ -71,58 +67,50 @@ export async function extractTextFromPlainText(buffer: Buffer): Promise<string> 
   return clampExtractedText(buffer.toString("utf-8"));
 }
 
+function stripFrontmatter(text: string): string {
+  return text
+    .replace(/^---[\s\S]*?---\n?/, "")
+    .replace(/^\+\+\+[\s\S]*?\+\+\+\n?/, "");
+}
+
+function stripCodeBlocks(text: string): string {
+  return text
+    .replace(/```[\s\S]*?```/g, "")
+    .replace(/~~~[\s\S]*?~~~/g, "");
+}
+
+function stripMarkdownFormatting(text: string): string {
+  return text
+    // HTML tags
+    .replace(/<[^>]+>/g, "")
+    // Images: ![alt](url)
+    .replace(/!\[[^\]]*\]\([^)]*\)/g, "")
+    // Links: [text](url) → text
+    .replace(/\[([^\]]+)\]\([^)]*\)/g, "$1")
+    // Reference links: [text][ref] → text
+    .replace(/\[([^\]]+)\]\[[^\]]*\]/g, "$1")
+    // Inline code
+    .replace(/`[^`]*`/g, "")
+    // ATX headers: # Heading → Heading
+    .replace(/^#{1,6}\s+/gm, "")
+    // Setext underlines
+    .replace(/^[=\-]{3,}\s*$/gm, "")
+    // Blockquote markers
+    .replace(/^>\s?/gm, "")
+    // Bold/italic markers
+    .replace(/(\*{1,3}|_{1,3})([^*_\n]+)\1/g, "$2")
+    // Strikethrough
+    .replace(/~~([^~]+)~~/g, "$1")
+    // Horizontal rules
+    .replace(/^(\s*[-*_]){3,}\s*$/gm, "")
+    // Unordered list markers
+    .replace(/^[\s]*[-*+]\s+/gm, "")
+    // Ordered list markers
+    .replace(/^[\s]*\d+\.\s+/gm, "");
+}
+
 export function extractTextFromMarkdown(buffer: Buffer): string {
-  let text = buffer.toString("utf-8");
-
-  // Strip YAML/TOML frontmatter (only at start of file — no /m flag so ^ is string-start)
-  text = text.replace(/^---[\s\S]*?---\n?/, "");
-  text = text.replace(/^\+\+\+[\s\S]*?\+\+\+\n?/, "");
-
-  // Strip fenced code blocks (replace with a blank line)
-  text = text.replace(/```[\s\S]*?```/g, "");
-  text = text.replace(/~~~[\s\S]*?~~~/g, "");
-
-  // Strip HTML tags
-  text = text.replace(/<[^>]+>/g, "");
-
-  // Strip images (![alt](url)) — drop entirely
-  text = text.replace(/!\[[^\]]*\]\([^)]*\)/g, "");
-
-  // Convert links ([text](url)) → text only
-  text = text.replace(/\[([^\]]+)\]\([^)]*\)/g, "$1");
-
-  // Strip reference-style links: [text][ref] → text
-  text = text.replace(/\[([^\]]+)\]\[[^\]]*\]/g, "$1");
-
-  // Strip inline code
-  text = text.replace(/`[^`]*`/g, "");
-
-  // Strip ATX headers (# Heading → Heading)
-  text = text.replace(/^#{1,6}\s+/gm, "");
-
-  // Strip setext header underlines (=== or ---)
-  text = text.replace(/^[=\-]{3,}\s*$/gm, "");
-
-  // Strip blockquote markers
-  text = text.replace(/^>\s?/gm, "");
-
-  // Strip bold/italic markers
-  text = text.replace(/(\*{1,3}|_{1,3})([^*_\n]+)\1/g, "$2");
-
-  // Strip strikethrough
-  text = text.replace(/~~([^~]+)~~/g, "$1");
-
-  // Strip horizontal rules
-  text = text.replace(/^(\s*[-*_]){3,}\s*$/gm, "");
-
-  // Strip unordered list markers (- item, * item, + item)
-  text = text.replace(/^[\s]*[-*+]\s+/gm, "");
-
-  // Strip ordered list markers (1. item)
-  text = text.replace(/^[\s]*\d+\.\s+/gm, "");
-
-  // Collapse excess blank lines and trim
-  text = text.replace(/\n{3,}/g, "\n\n").trim();
-
-  return clampExtractedText(text);
+  const raw = buffer.toString("utf-8");
+  const cleaned = stripMarkdownFormatting(stripCodeBlocks(stripFrontmatter(raw)));
+  return clampExtractedText(normalizeText(cleaned));
 }

@@ -1,8 +1,7 @@
 import type { Chatbot } from "@/lib/db/schema";
 import { updateChatbot } from "@/lib/db/queries/chatbots";
 import { syncChatbotTrainingStatus } from "@/lib/training-queue";
-
-type TrainingStatus = "idle" | "training" | "ready" | "error";
+import type { TrainingStatus } from "@/lib/config/constants";
 
 export async function recoverTrainingStatus(
   chatbot: Chatbot | null

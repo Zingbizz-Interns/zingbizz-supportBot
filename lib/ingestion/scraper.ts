@@ -1,5 +1,7 @@
 import * as cheerio from "cheerio";
 import { isPrivateUrl } from "../url-safety";
+import { normalizeText } from "../utils";
+import { MAX_PAGE_CONTENT_CHARS, MAX_TOTAL_PAGE_CHARS } from "../config/constants";
 
 export interface ScrapedPage {
   url: string;
@@ -7,8 +9,7 @@ export interface ScrapedPage {
   content: string;
 }
 
-const MAX_PAGE_CONTENT_CHARS = 50_000;
-const MAX_TOTAL_SCRAPED_CONTENT_CHARS = 250_000;
+const MAX_TOTAL_SCRAPED_CONTENT_CHARS = MAX_TOTAL_PAGE_CHARS;
 const MAX_HTML_BYTES = 2 * 1024 * 1024;
 const MAX_REDIRECTS = 5;
 
@@ -51,16 +52,7 @@ const NOISY_TEXT_PATTERNS = [
   /phone:\s*\+?\d/i,
 ];
 
-function normalizeWhitespace(text: string): string {
-  return text
-    .replace(/\u00a0/g, " ")
-    .replace(/\t/g, " ")
-    .replace(/[ ]{2,}/g, " ")
-    .replace(/\s+\n/g, "\n")
-    .replace(/\n\s+/g, "\n")
-    .replace(/\n{3,}/g, "\n\n")
-    .trim();
-}
+const normalizeWhitespace = normalizeText;
 
 function isLikelyBoilerplate(text: string): boolean {
   const normalized = normalizeWhitespace(text);

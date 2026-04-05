@@ -1,16 +1,14 @@
-import { auth } from "@/lib/auth";
+import { requireAuth, isSessionError } from "@/lib/auth-helpers";
 import { scrapeWebsite } from "@/lib/ingestion/scraper";
 import { parseBody } from "@/lib/validation/parse";
 import { scrapeRequestSchema } from "@/lib/validation/schemas";
 import { scrapeRateLimit } from "@/lib/rate-limit";
 
 export async function POST(request: Request) {
-  const session = await auth();
-  if (!session?.user?.id) {
-    return Response.json({ error: "Unauthorized" }, { status: 401 });
-  }
+  const session = await requireAuth();
+  if (isSessionError(session)) return session.response;
 
-  const { success } = await scrapeRateLimit.limit(session.user.id);
+  const { success } = await scrapeRateLimit.limit(session.userId);
   if (!success) {
     return Response.json(
       { error: "Too many scrape requests. Please wait before scanning another website." },

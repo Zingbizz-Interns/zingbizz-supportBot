@@ -6,6 +6,7 @@ import { Testimonials } from "@/components/marketing/testimonials";
 import { HowItWorks } from "@/components/marketing/how-it-works";
 import { Pricing } from "@/components/marketing/pricing";
 import { Footer } from "@/components/marketing/footer";
+import { auth } from "@/lib/auth";
 import { getAbsoluteUrl, siteConfig } from "@/lib/site";
 
 export const metadata: Metadata = {
@@ -64,7 +65,10 @@ const jsonLd = {
   },
 };
 
-export default function HomePage() {
+export default async function HomePage() {
+  const session = await auth();
+  const isLoggedIn = Boolean(session?.user?.id);
+
   return (
     <>
       <script
@@ -72,13 +76,13 @@ export default function HomePage() {
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
       <main>
-        <Nav />
-        <Hero />
+        <Nav isLoggedIn={isLoggedIn} />
+        <Hero isLoggedIn={isLoggedIn} />
         <Features />
         <Testimonials />
         <HowItWorks />
         <Pricing />
-        <Footer />
+        <Footer isLoggedIn={isLoggedIn} />
       </main>
     </>
   );

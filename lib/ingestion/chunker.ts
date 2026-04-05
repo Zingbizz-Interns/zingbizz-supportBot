@@ -1,4 +1,5 @@
 import { RecursiveCharacterTextSplitter } from "@langchain/textsplitters";
+import { normalizeText } from "../utils";
 
 export interface TextChunk {
   content: string;
@@ -18,11 +19,7 @@ const splitter = new RecursiveCharacterTextSplitter({
 export async function chunkText(text: string): Promise<TextChunk[]> {
   if (!text || text.trim().length === 0) return [];
 
-  const normalizedText = text
-    .replace(/\t/g, " ")
-    .replace(/[ ]{2,}/g, " ")
-    .replace(/\n{3,}/g, "\n\n")
-    .trim();
+  const normalizedText = normalizeText(text);
 
   if (!normalizedText) return [];
 

@@ -1,18 +1,16 @@
-import { auth } from "@/lib/auth";
+import { requireAuth, isSessionError } from "@/lib/auth-helpers";
 import { getChatbotByUserId, createChatbot } from "@/lib/db/queries/chatbots";
 import { recoverTrainingStatus } from "@/lib/training-status";
 import { parseBody } from "@/lib/validation/parse";
 import { createChatbotSchema } from "@/lib/validation/schemas";
 
 export async function GET() {
-  const session = await auth();
-  if (!session?.user?.id) {
-    return Response.json({ error: "Unauthorized" }, { status: 401 });
-  }
+  const session = await requireAuth();
+  if (isSessionError(session)) return session.response;
 
   try {
     const chatbot = await recoverTrainingStatus(
-      await getChatbotByUserId(session.user.id)
+      await getChatbotByUserId(session.userId)
     );
     return Response.json({ chatbot });
   } catch (error) {
@@ -22,12 +20,10 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
-  const session = await auth();
-  if (!session?.user?.id) {
-    return Response.json({ error: "Unauthorized" }, { status: 401 });
-  }
+  const session = await requireAuth();
+  if (isSessionError(session)) return session.response;
 
-  const existing = await getChatbotByUserId(session.user.id);
+  const existing = await getChatbotByUserId(session.userId);
   if (existing) {
     return Response.json(
       { error: "You already have a chatbot. Only one chatbot per account is allowed." },
@@ -49,7 +45,7 @@ export async function POST(request: Request) {
 
   try {
     const chatbot = await createChatbot({
-      userId: session.user.id,
+      userId: session.userId,
       ...(name ? { name } : {}),
       ...(welcomeMessage ? { welcomeMessage } : {}),
       ...(fallbackMessage ? { fallbackMessage } : {}),

@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useRef } from "react";
 import { buttonVariants } from "@/components/ui/button";
 
-export function Hero() {
+export function Hero({ isLoggedIn = false }: { isLoggedIn?: boolean }) {
   const targetRef = useRef<HTMLDivElement>(null);
   const { scrollYProgress } = useScroll({
     target: targetRef,
@@ -60,10 +60,10 @@ export function Hero() {
 
             <div className="mt-10 flex flex-col gap-6 sm:flex-row">
               <Link
-                href="/signup"
+                href={isLoggedIn ? "/dashboard" : "/signup"}
                 className={buttonVariants({ size: "lg", variant: "primary" })}
               >
-                Start for free
+                {isLoggedIn ? "Open dashboard" : "Start for free"}
               </Link>
               <Link
                 href="#how-it-works"

@@ -2,7 +2,10 @@
 
 import Link from "next/link";
 
-export function Footer() {
+export function Footer({ isLoggedIn = false }: { isLoggedIn?: boolean }) {
+  const primaryHref = isLoggedIn ? "/dashboard" : "/signup";
+  const secondaryHref = isLoggedIn ? "/dashboard" : "/login";
+
   return (
     <footer className="border-t border-clay py-12 md:py-24 bg-stone text-foreground overflow-hidden">
       <div className="max-w-[1400px] mx-auto px-4 md:px-8 flex flex-col items-start gap-16 md:gap-32">
@@ -22,16 +25,16 @@ export function Footer() {
           </p>
           <nav aria-label="Footer Navigation" className="flex flex-wrap gap-8">
             <Link
-              href="/login"
+              href={secondaryHref}
               className="font-[family-name:var(--font-sans)] text-sm md:text-base font-bold uppercase tracking-widest text-foreground hover:text-terracotta transition-colors"
             >
-              Sign In
+              {isLoggedIn ? "Dashboard" : "Sign In"}
             </Link>
             <Link
-              href="/signup"
+              href={primaryHref}
               className="font-[family-name:var(--font-sans)] text-sm md:text-base font-bold uppercase tracking-widest text-foreground hover:text-terracotta transition-colors"
             >
-              Sign Up
+              {isLoggedIn ? "Open App" : "Sign Up"}
             </Link>
           </nav>
         </div>

@@ -1,21 +1,18 @@
-import { auth } from "@/lib/auth";
+import { requireAuth, isSessionError } from "@/lib/auth-helpers";
 import { getChatbotById, updateChatbot } from "@/lib/db/queries/chatbots";
 import { type IngestionPage } from "@/lib/ingestion/pipeline";
 import { enqueueTrainingJob } from "@/lib/training-queue";
 import { parseBody } from "@/lib/validation/parse";
 import { trainRequestSchema } from "@/lib/validation/schemas";
 import { trainRateLimit } from "@/lib/rate-limit";
+import { MAX_PAGE_CONTENT_CHARS, MAX_TOTAL_PAGE_CHARS } from "@/lib/config/constants";
 
-const MAX_PAGE_CONTENT_CHARS = 50_000;
-const MAX_TOTAL_PAGE_CHARS = 250_000;
 
 export async function POST(request: Request) {
-  const session = await auth();
-  if (!session?.user?.id) {
-    return Response.json({ error: "Unauthorized" }, { status: 401 });
-  }
+  const session = await requireAuth();
+  if (isSessionError(session)) return session.response;
 
-  const { success } = await trainRateLimit.limit(session.user.id);
+  const { success } = await trainRateLimit.limit(session.userId);
   if (!success) {
     return Response.json(
       { error: "Too many training requests. Please wait a few minutes before trying again." },
@@ -38,7 +35,7 @@ export async function POST(request: Request) {
   // Auth + ownership check
   const chatbot = await getChatbotById(chatbotId);
   if (!chatbot) return Response.json({ error: "Not found" }, { status: 404 });
-  if (chatbot.userId !== session.user.id) {
+  if (chatbot.userId !== session.userId) {
     return Response.json({ error: "Forbidden" }, { status: 403 });
   }
 

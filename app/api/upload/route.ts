@@ -1,4 +1,4 @@
-import { auth } from "@/lib/auth";
+import { requireAuth, isSessionError } from "@/lib/auth-helpers";
 import { put } from "@vercel/blob";
 import { uploadRateLimit } from "@/lib/rate-limit";
 
@@ -7,12 +7,10 @@ const ALLOWED_TYPES = ["application/pdf", "text/plain", "text/markdown"];
 const ALLOWED_EXTENSIONS = /\.(pdf|txt|md)$/i;
 
 export async function POST(request: Request) {
-  const session = await auth();
-  if (!session?.user?.id) {
-    return Response.json({ error: "Unauthorized" }, { status: 401 });
-  }
+  const session = await requireAuth();
+  if (isSessionError(session)) return session.response;
 
-  const { success } = await uploadRateLimit.limit(session.user.id);
+  const { success } = await uploadRateLimit.limit(session.userId);
   if (!success) {
     return Response.json(
       { error: "Too many upload requests. Please wait before uploading more files." },
@@ -70,7 +68,7 @@ export async function POST(request: Request) {
 
   try {
     const blob = await put(
-      `uploads/${session.user.id}/${Date.now()}-${file.name}`,
+      `uploads/${session.userId}/${Date.now()}-${file.name}`,
       file,
       {
         access: "private",
