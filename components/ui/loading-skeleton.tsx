@@ -1,13 +1,16 @@
 "use client";
 
+import type { CSSProperties } from "react";
 import { motion } from "framer-motion";
 
 export function CinematicSkeleton({ 
   className = "", 
-  variant = "rectangular" 
+  variant = "rectangular",
+  style,
 }: { 
   className?: string; 
-  variant?: "rectangular" | "circular" | "title" | "text" 
+  variant?: "rectangular" | "circular" | "title" | "text";
+  style?: CSSProperties;
 }) {
   const getVariantClasses = () => {
     switch (variant) {
@@ -21,6 +24,7 @@ export function CinematicSkeleton({
   return (
     <motion.div
       className={`bg-[#DCCFC2]/40 overflow-hidden relative ${getVariantClasses()} ${className}`}
+      style={style}
       initial={{ opacity: 0.5 }}
       animate={{ opacity: [0.5, 1, 0.5] }}
       transition={{ 

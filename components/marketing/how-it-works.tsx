@@ -31,7 +31,11 @@ export function HowItWorks() {
   const containerRef = useRef<HTMLDivElement>(null);
 
   return (
-    <section id="how-it-works" ref={containerRef} className="py-24 md:py-48 bg-stone text-foreground border-y border-clay">
+    <section
+      id="how-it-works"
+      ref={containerRef}
+      className="relative scroll-mt-24 py-24 md:scroll-mt-32 md:py-48 bg-stone text-foreground border-y border-clay"
+    >
       <div className="max-w-[1400px] mx-auto px-4 md:px-8">
         <div className="flex flex-col lg:flex-row gap-16 lg:gap-32 items-start">
 
@@ -71,7 +75,7 @@ function StepItem({ step }: { step: Step }) {
     <motion.div
       ref={itemRef}
       style={{ y, opacity }}
-      className="flex flex-col md:flex-row gap-8 md:gap-16 items-start"
+      className="relative flex flex-col md:flex-row gap-8 md:gap-16 items-start"
     >
       <div className="font-[family-name:var(--font-sans)] text-6xl md:text-8xl font-black text-clay tracking-tighter self-start pt-2">
         {step.number}

@@ -44,7 +44,7 @@ export function Features() {
         </h2>
       </div>
 
-      <div ref={containerRef} className="max-w-7xl mx-auto px-4 md:px-8 flex flex-col gap-0">
+      <div ref={containerRef} className="relative max-w-7xl mx-auto px-4 md:px-8 flex flex-col gap-0">
         {features.map((feature) => (
           <FeatureCard key={feature.number} feature={feature} />
         ))}

@@ -1,11 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { FileText, Loader2, Plus, Trash2 } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { CinematicSkeleton, SkeletonGrid } from "@/components/ui/loading-skeleton";
 import type { Source, TrainingStatus } from "./sources/types";
 import { useSourceActions } from "./sources/use-source-actions";
 import { useTrainingPoller } from "./sources/use-training-poller";
@@ -54,22 +53,6 @@ export function SourcesPageClient({
 
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [showBulkConfirm, setShowBulkConfirm] = useState(false);
-
-  const [isReady, setIsReady] = useState(false);
-  useEffect(() => {
-    const t = setTimeout(() => setIsReady(true), 400);
-    return () => clearTimeout(t);
-  }, []);
-
-  if (!isReady) {
-    return (
-      <div className="py-8 md:py-12 px-4 md:px-8 max-w-5xl mx-auto">
-        <CinematicSkeleton variant="title" className="mb-4 w-64 rounded-2xl" />
-        <CinematicSkeleton variant="text" className="mb-12 w-72 rounded-full" />
-        <SkeletonGrid count={6} />
-      </div>
-    );
-  }
 
   const isTraining = trainingStatus === "training";
 
