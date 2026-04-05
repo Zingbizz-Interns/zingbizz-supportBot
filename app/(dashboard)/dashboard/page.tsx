@@ -4,34 +4,15 @@ import { Card } from "@/components/ui/card";
 import { Settings, Palette, Code, ArrowRight } from "lucide-react";
 import { getChatbotByUserId } from "@/lib/db/queries/chatbots";
 import { recoverTrainingStatus } from "@/lib/training-status";
+import { isChatbotReady } from "@/lib/chatbot-navigation";
 
 interface QuickLink {
+  key: string;
   label: string;
   description: string;
   href: string;
   icon: React.ComponentType<{ size?: number; strokeWidth?: number; className?: string }>;
 }
-
-const quickLinks: QuickLink[] = [
-  {
-    label: "Setup Chatbot",
-    description: "Train your chatbot on your website or documents.",
-    href: "/dashboard/chatbot/setup",
-    icon: Settings,
-  },
-  {
-    label: "Customize",
-    description: "Adjust the look, name, and welcome message.",
-    href: "/dashboard/chatbot/customize",
-    icon: Palette,
-  },
-  {
-    label: "Embed",
-    description: "Get the script tag and add it to your site.",
-    href: "/dashboard/chatbot/embed",
-    icon: Code,
-  },
-];
 
 export default async function DashboardPage() {
   const session = await auth();
@@ -41,6 +22,32 @@ export default async function DashboardPage() {
     session?.user?.id
       ? await recoverTrainingStatus(await getChatbotByUserId(session.user.id))
       : null;
+  const canCustomize = isChatbotReady(chatbot);
+  const quickLinks: QuickLink[] = [
+    {
+      key: "setup",
+      label: "Setup Chatbot",
+      description: "Train your chatbot on your website or documents.",
+      href: "/dashboard/chatbot/setup",
+      icon: Settings,
+    },
+    {
+      key: "customize",
+      label: "Customize",
+      description: canCustomize
+        ? "Adjust the look, name, and welcome message."
+        : "Complete setup and training before customizing your chatbot.",
+      href: "/dashboard/chatbot/customize",
+      icon: Palette,
+    },
+    {
+      key: "embed",
+      label: "Embed",
+      description: "Get the script tag and add it to your site.",
+      href: "/dashboard/chatbot/embed",
+      icon: Code,
+    },
+  ];
 
   const trainingContent = chatbot?.trainingStatus === "ready"
     ? {
@@ -129,7 +136,7 @@ export default async function DashboardPage() {
               const Icon = item.icon;
               return (
                 <Link
-                  key={item.href}
+                  key={item.key}
                   href={item.href}
                   className="group block transition-transform duration-500 hover:-translate-y-1 active:scale-95"
                 >

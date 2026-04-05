@@ -57,10 +57,10 @@ export function Nav() {
               initial={{ opacity: 0, y: -10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.1 * i + 0.3, duration: 0.4 }}
-              className="text-sm font-[family-name:var(--font-sans)] text-[#2D3A31]/70 hover:text-[#2D3A31] transition-colors duration-300 relative group"
+              className="relative inline-flex min-h-11 items-center text-sm font-[family-name:var(--font-sans)] text-[#2D3A31]/70 hover:text-[#2D3A31] transition-colors duration-300 group"
             >
               {link.label}
-              <span className="absolute -bottom-1 left-0 w-0 h-[2px] bg-[#8C9A84] transition-all duration-300 group-hover:w-full rounded-full"></span>
+              <span className="absolute -bottom-1 left-1/2 h-[2px] w-0 -translate-x-1/2 bg-[#6A7A62] transition-all duration-300 group-hover:w-full rounded-full"></span>
             </motion.a>
           ))}
         </nav>
@@ -69,13 +69,13 @@ export function Nav() {
         <div className="hidden md:flex items-center gap-3">
           <Link
             href="/login"
-            className="text-sm font-[family-name:var(--font-sans)] text-[#2D3A31]/70 hover:text-[#2D3A31] transition-all duration-300 px-4 py-2 hover:bg-[#8C9A84]/10 rounded-full"
+            className="inline-flex min-h-11 items-center text-sm font-[family-name:var(--font-sans)] text-[#2D3A31]/70 hover:text-[#2D3A31] transition-all duration-300 px-4 py-2 hover:bg-[#8C9A84]/10 rounded-full"
           >
             Sign In
           </Link>
           <Link
             href="/signup"
-            className="inline-flex items-center justify-center rounded-full bg-[#2D3A31] text-white px-6 py-2.5 text-xs font-[family-name:var(--font-sans)] uppercase tracking-widest transition-all duration-300 hover:bg-[#3d5245] hover:-translate-y-0.5 hover:shadow-lg active:scale-95 active:shadow-sm"
+            className="inline-flex min-h-11 items-center justify-center rounded-full bg-[#2D3A31] text-white px-6 py-2.5 text-xs font-[family-name:var(--font-sans)] uppercase tracking-widest transition-all duration-300 hover:bg-[#3d5245] hover:-translate-y-0.5 active:scale-95"
           >
             Get Started
           </Link>

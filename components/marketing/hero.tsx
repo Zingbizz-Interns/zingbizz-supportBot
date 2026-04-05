@@ -1,135 +1,80 @@
 "use client";
 
-import Link from "next/link";
-import { motion, Variants } from "framer-motion";
-
-const containerVariants: Variants = {
-  hidden: { opacity: 0 },
-  visible: {
-    opacity: 1,
-    transition: {
-      staggerChildren: 0.15,
-      delayChildren: 0.2,
-    },
-  },
-};
-
-const itemVariants: Variants = {
-  hidden: { opacity: 0, y: 20 },
-  visible: {
-    opacity: 1,
-    y: 0,
-    transition: { duration: 0.6, ease: [0.22, 1, 0.36, 1] },
-  },
-};
+import { motion, useScroll, useTransform } from "framer-motion";
+import { CinematicButton } from "@/components/ui/cinematic-button";
+import { useRef } from "react";
 
 export function Hero() {
+  const targetRef = useRef<HTMLDivElement>(null);
+  const { scrollYProgress } = useScroll({
+    target: targetRef,
+    offset: ["start start", "end start"],
+  });
+
+  const y1 = useTransform(scrollYProgress, [0, 1], [0, 100]);
+  const opacity1 = useTransform(scrollYProgress, [0, 0.8], [1, 0]);
+
   return (
-    <section className="pt-32 pb-24 md:pt-40 md:pb-32 overflow-hidden">
-      <div className="max-w-7xl mx-auto px-4 md:px-8">
-        <div className="grid md:grid-cols-2 gap-16 items-center">
-          {/* Text */}
+    <section 
+      ref={targetRef}
+      className="relative flex min-h-[90vh] items-center justify-center overflow-hidden pt-24 pb-12 md:min-h-screen"
+    >
+      <div className="absolute top-0 left-0 w-full h-[50vh] bg-gradient-to-b from-[#E6E2DA]/30 to-transparent pointer-events-none" />
+      
+      <div className="relative z-10 mx-auto flex w-full max-w-[95%] flex-col items-center px-4 text-center sm:px-6">
+        <motion.div
+          initial={{ opacity: 0, scale: 0.9, filter: "blur(10px)" }}
+          animate={{ opacity: 1, scale: 1, filter: "blur(0px)" }}
+          transition={{ duration: 1.2, ease: [0.16, 1, 0.3, 1] }}
+          style={{ y: y1, opacity: opacity1 }}
+          className="relative mx-auto flex max-w-7xl flex-col items-center"
+        >
           <motion.div
-            variants={containerVariants}
-            initial="hidden"
-            animate="visible"
+            initial={{ opacity: 0, y: 30 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.3, duration: 0.8, ease: "easeOut" }}
+            className="inline-flex items-center rounded-sm bg-[#2D3A31] px-4 py-1.5 text-xs font-[family-name:var(--font-sans)] text-[#F9F8F4] uppercase tracking-[0.2em] mb-12"
           >
-            <motion.div
-              variants={itemVariants}
-              className="inline-flex items-center rounded-full bg-[#8C9A84]/15 px-4 py-1.5 text-xs font-[family-name:var(--font-sans)] text-[#8C9A84] uppercase tracking-widest mb-8"
-            >
-              AI-Powered Support
-            </motion.div>
-            <motion.h1
-              variants={itemVariants}
-              className="font-[family-name:var(--font-serif)] text-5xl md:text-7xl font-bold text-[#2D3A31] leading-[1.05] mb-6"
-            >
-              Your website,
-              <br />
-              now <em>answers</em>
-              <br />
-              questions.
-            </motion.h1>
-            <motion.p
-              variants={itemVariants}
-              className="font-[family-name:var(--font-sans)] text-lg text-[#2D3A31]/70 max-w-md mb-10 leading-relaxed"
-            >
-              Create an AI chatbot trained on your business in minutes. Paste a
-              URL, let it learn, and embed it on your site with one line of
-              code.
-            </motion.p>
-            <motion.div
-              variants={itemVariants}
-              className="flex flex-col sm:flex-row gap-4"
-            >
-              <Link
-                href="/signup"
-                className="inline-flex items-center justify-center rounded-full bg-[#2D3A31] text-white px-10 py-4 text-sm font-[family-name:var(--font-sans)] uppercase tracking-widest transition-all duration-300 hover:bg-[#3d5245] hover:-translate-y-1 hover:shadow-[0_15px_30px_-5px_rgba(45,58,49,0.25)] active:scale-95 active:translate-y-0"
-              >
-                Start for free
-              </Link>
-              <a
-                href="#how-it-works"
-                className="inline-flex items-center justify-center rounded-full border border-[#8C9A84] text-[#8C9A84] px-10 py-4 text-sm font-[family-name:var(--font-sans)] uppercase tracking-widest transition-all duration-300 hover:bg-[#8C9A84] hover:text-white hover:-translate-y-1 hover:shadow-[0_15px_30px_-5px_rgba(140,154,132,0.3)] active:scale-95 active:translate-y-0"
-              >
-                See how it works
-              </a>
-            </motion.div>
+            AI-Powered Support
           </motion.div>
 
-          {/* Decorative arch image */}
-          <motion.div
-            initial={{ opacity: 0, scale: 0.95, x: 20 }}
-            animate={{ opacity: 1, scale: 1, x: 0 }}
-            transition={{ duration: 0.8, delay: 0.4, ease: [0.22, 1, 0.36, 1] }}
-            className="relative flex justify-center md:justify-end"
-          >
-            <div
-              className="w-72 h-96 md:w-80 md:h-[480px] bg-[#DCCFC2] flex items-center justify-center relative overflow-hidden group"
-              style={{ borderRadius: "9999px 9999px 40px 40px" }}
-            >
-              {/* Subtle background animation inside the arch */}
-              <div className="absolute inset-0 bg-gradient-to-t from-[#8C9A84]/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700"></div>
+          <h1 className="mb-8 font-[family-name:var(--font-serif)] text-[15vw] font-medium leading-[0.88] tracking-tight text-[#2D3A31] mix-blend-multiply md:text-[10vw] lg:text-[8rem]">
+            <span className="block pr-8 italic text-[#6A7A62] md:pr-24">Instant</span>
+            <span className="block text-center indent-8 md:indent-32">Answers.</span>
+            <span className="block pr-2 text-right italic text-[#9E5946] md:pr-16">Zero Config.</span>
+          </h1>
 
-              <div className="text-center px-8 relative z-10 transition-transform duration-500 group-hover:-translate-y-2">
-                <div className="w-16 h-16 rounded-full bg-[#8C9A84]/30 flex items-center justify-center mx-auto mb-6 transform transition-transform duration-500 group-hover:scale-110">
-                  <svg
-                    width="28"
-                    height="28"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="#8C9A84"
-                    strokeWidth="1.5"
-                  >
-                    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
-                  </svg>
-                </div>
-                <p className="font-[family-name:var(--font-serif)] text-xl italic text-[#2D3A31] leading-snug">
-                  &ldquo;How can I help you today?&rdquo;
-                </p>
-                <p className="font-[family-name:var(--font-sans)] text-xs text-[#2D3A31]/50 mt-3 uppercase tracking-wider">
-                  Your AI Assistant
-                </p>
-              </div>
+          <div className="relative mt-12 w-full max-w-5xl border-t border-[#DCCFC2] pt-8 text-left">
+            <div className="pointer-events-none absolute -top-6 right-0 hidden font-[family-name:var(--font-serif)] text-[5rem] leading-none text-[#DCCFC2] md:block">
+              01
             </div>
-            {/* Floating stat card */}
-            <motion.div
-              initial={{ opacity: 0, y: 30 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 1, duration: 0.6, type: "spring", stiffness: 100 }}
-              whileHover={{ y: -8, scale: 1.02, transition: { type: "spring", stiffness: 300, damping: 20 } }}
-              className="absolute -bottom-4 -left-4 md:left-0 bg-white rounded-2xl p-4 shadow-[0_20px_40px_-10px_rgba(45,58,49,0.15)] border border-[#F2F0EB] cursor-default"
-            >
-              <p className="font-[family-name:var(--font-sans)] text-xs text-[#8C9A84] uppercase tracking-wide mb-1">
-                Setup time
+            <div className="max-w-2xl">
+              <p className="mb-5 font-[family-name:var(--font-serif)] text-2xl font-medium text-[#6A7A62] md:max-w-lg md:text-3xl">
+                Conversational infrastructure for teams who want elegance, not setup debt.
               </p>
-              <p className="font-[family-name:var(--font-serif)] text-2xl font-bold text-[#2D3A31]">
-                &lt; 5 min
+              <p className="font-[family-name:var(--font-sans)] text-lg font-light leading-relaxed text-[#2D3A31]/80">
+                ZingDesk absorbs your business context in minutes. We replace static FAQ pages with a living, intelligent system—built to embed anywhere with just a single line of code.
               </p>
-            </motion.div>
-          </motion.div>
-        </div>
+            </div>
+
+            <div className="mt-10 flex flex-col gap-6 sm:flex-row">
+                <CinematicButton href="/signup" variant="primary">
+                  Start for free
+                </CinematicButton>
+                <CinematicButton href="#how-it-works" variant="secondary">
+                  See how it works
+                </CinematicButton>
+            </div>
+          </div>
+        </motion.div>
       </div>
+      
+      <motion.div
+        initial={{ scaleY: 0 }}
+        animate={{ scaleY: 1 }}
+        transition={{ delay: 0.6, duration: 1.5, ease: [0.77, 0, 0.175, 1] }}
+        className="absolute bottom-0 right-[15%] w-[1px] h-32 bg-[#2D3A31]/20 hidden md:block origin-bottom"
+      />
     </section>
   );
 }

@@ -1,111 +1,98 @@
 "use client";
 
-import { Card } from "@/components/ui/card";
-import { Zap, Globe, Code, MessageSquare } from "lucide-react";
-import { motion, Variants } from "framer-motion";
+import { useRef } from "react";
+import { motion, useScroll, useTransform } from "framer-motion";
 
-const features = [
+interface Feature {
+  number: string;
+  title: string;
+  description: string;
+}
+
+const features: Feature[] = [
   {
-    icon: Globe,
+    number: "01",
     title: "Train on Your Website",
-    description:
-      "Paste your URL and we scrape your pages automatically. Your chatbot learns everything about your business in seconds.",
+    description: "Paste your URL and we scrape your pages automatically. Your chatbot learns everything about your business in seconds."
   },
   {
-    icon: Zap,
+    number: "02",
     title: "Instant AI Answers",
-    description:
-      "Powered by advanced RAG technology — your chatbot retrieves the most relevant knowledge before answering every question.",
+    description: "Powered by advanced RAG technology — your chatbot retrieves the most relevant knowledge before answering every question."
   },
   {
-    icon: Code,
+    number: "03",
     title: "One-Line Embed",
-    description:
-      "Copy a single script tag. Paste it anywhere. Your chatbot appears as a floating widget on any website.",
+    description: "Copy a single script tag. Paste it anywhere. Your chatbot appears as a floating widget on any website."
   },
   {
-    icon: MessageSquare,
+    number: "04",
     title: "Instant Answers",
-    description:
-      "Visitors get accurate answers in seconds — no waiting, no scrolling through docs.",
-  },
+    description: "Visitors get accurate answers in seconds — no waiting, no scrolling through docs."
+  }
 ];
 
-const containerVariants: Variants = {
-  hidden: { opacity: 0 },
-  visible: {
-    opacity: 1,
-    transition: {
-      staggerChildren: 0.15,
-    },
-  },
-};
-
-const itemVariants: Variants = {
-  hidden: { opacity: 0, scale: 0.95, y: 30 },
-  visible: {
-    opacity: 1,
-    scale: 1,
-    y: 0,
-    transition: { duration: 0.5, ease: "easeOut" },
-  },
-};
-
 export function Features() {
+  const containerRef = useRef<HTMLDivElement>(null);
+  
   return (
-    <section id="features" className="py-24 md:py-32 overflow-hidden">
-      <div className="max-w-7xl mx-auto px-4 md:px-8">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true, margin: "-100px" }}
-          transition={{ duration: 0.6 }}
-          className="text-center mb-16 md:mb-20"
-        >
-          <p className="font-[family-name:var(--font-sans)] text-sm text-[#8C9A84] uppercase tracking-widest mb-4">
-            Features
-          </p>
-          <h2 className="font-[family-name:var(--font-serif)] text-4xl md:text-5xl font-bold text-[#2D3A31]">
-            Everything you need to
-            <br />
-            <em>automate support</em>
-          </h2>
-        </motion.div>
-
-        <motion.div
-          variants={containerVariants}
-          initial="hidden"
-          whileInView="visible"
-          viewport={{ once: true, margin: "-100px" }}
-          className="grid md:grid-cols-2 lg:grid-cols-4 gap-8"
-        >
-          {features.map((feature) => {
-            const Icon = feature.icon;
-            return (
-              <motion.div
-                variants={itemVariants}
-                key={feature.title}
-                className="flex transition-transform duration-300"
-              >
-                <article className="group w-full block hover:-translate-y-2 hover:shadow-[0_20px_40px_-10px_rgba(45,58,49,0.12)] transition-all duration-500 active:scale-95 cursor-default">
-                  <Card className="h-full p-8 border border-black/[0.08] transition-all duration-500 group-hover:border-[#8C9A84]/40 group-hover:bg-gradient-to-br group-hover:from-white group-hover:to-[#F9F8F4] overflow-hidden relative">
-                    <div className="absolute inset-0 bg-[#8C9A84]/[0.02] opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-                    <div className="relative z-10 w-12 h-12 rounded-full bg-[#F2F0EB] flex items-center justify-center mb-6 transition-all duration-500 group-hover:bg-[#8C9A84]/20 group-hover:scale-110 group-hover:shadow-sm">
-                      <Icon size={20} strokeWidth={1.5} className="text-[#8C9A84] transition-colors duration-500 group-hover:text-[#2D3A31]" />
-                    </div>
-                    <h3 className="relative z-10 font-[family-name:var(--font-serif)] text-xl font-semibold text-[#2D3A31] mb-3 transition-colors duration-500">
-                      {feature.title}
-                    </h3>
-                    <p className="relative z-10 font-[family-name:var(--font-sans)] text-[#2D3A31]/70 leading-relaxed transition-colors duration-500 group-hover:text-[#2D3A31]">
-                      {feature.description}
-                    </p>
-                  </Card>
-                </article>
-              </motion.div>
-            );
-          })}
-        </motion.div>
+    <section id="features" className="py-24 bg-[#2D3A31] text-[#F9F8F4] relative selection:bg-[#6A7A62] selection:text-white">
+      <div className="max-w-7xl mx-auto px-4 md:px-8 mb-16 md:mb-32">
+        <h2 className="font-[family-name:var(--font-serif)] text-5xl md:text-7xl font-medium text-balance mb-8">
+          Not another <em className="text-[#8C9A84] italic">widget</em>.<br />
+          An <span className="underline decoration-[#9E5946] underline-offset-8">intelligent</span> agent.
+        </h2>
       </div>
+
+      <div ref={containerRef} className="max-w-7xl mx-auto px-4 md:px-8 flex flex-col gap-0">
+        {features.map((feature) => (
+          <FeatureCard 
+            key={feature.number} 
+            feature={feature} 
+          />
+        ))}
+      </div>
+      
+      <div className="h-24 md:h-48" />
     </section>
+  );
+}
+
+function FeatureCard({ feature }: { feature: Feature }) {
+  const cardRef = useRef<HTMLDivElement>(null);
+  
+  const { scrollYProgress } = useScroll({
+    target: cardRef,
+    offset: ["start end", "start 20%"]
+  });
+
+  const opacity = useTransform(scrollYProgress, [0, 1], [0.3, 1]);
+  const scale = useTransform(scrollYProgress, [0, 1], [0.95, 1]);
+
+  return (
+    <motion.div 
+      ref={cardRef}
+      style={{ opacity, scale }}
+      className="sticky top-20 md:top-24 w-full min-h-[40vh] md:min-h-[50vh] bg-[#F9F8F4] text-[#2D3A31] border-x border-t border-[#DCCFC2] overflow-hidden flex flex-col justify-between p-8 md:p-16"
+      initial={{ y: 50, opacity: 0 }}
+      whileInView={{ y: 0, opacity: 1 }}
+      viewport={{ once: true, margin: "-100px" }}
+      transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
+    >
+      <div className="flex flex-col md:flex-row justify-between items-start gap-12 w-full h-full">
+        <div className="font-[family-name:var(--font-sans)] font-bold text-[8rem] md:text-[14rem] leading-none text-[#E6E2DA] tracking-tighter">
+          {feature.number}
+        </div>
+        
+        <div className="max-w-xl self-end md:-mt-8 relative z-10 flex flex-col">
+          <h3 className="font-[family-name:var(--font-serif)] text-3xl md:text-5xl font-medium text-[#2D3A31] mb-6">
+            {feature.title}
+          </h3>
+          <p className="font-[family-name:var(--font-sans)] text-[#6A7A62] text-xl md:text-2xl leading-relaxed text-balance">
+            {feature.description}
+          </p>
+        </div>
+      </div>
+    </motion.div>
   );
 }

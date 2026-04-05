@@ -1,8 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { CheckCircle2 } from "lucide-react";
-import Link from "next/link";
+import { CinematicButton } from "@/components/ui/cinematic-button";
 
 const features = [
   "1 AI chatbot for your website",
@@ -16,51 +15,53 @@ const features = [
 
 export function Pricing() {
   return (
-    <section id="pricing" className="py-24 md:py-32 bg-[#2D3A31]">
-      <div className="max-w-7xl mx-auto px-4 md:px-8 text-center">
-        <motion.div
-          initial={{ opacity: 0, scale: 0.97 }}
-          whileInView={{ opacity: 1, scale: 1 }}
-          viewport={{ once: true, margin: "-100px" }}
-          transition={{ duration: 0.7 }}
-        >
-          <span className="inline-block font-sans text-xs uppercase tracking-widest text-[#8C9A84] bg-[#8C9A84]/20 px-4 py-1.5 rounded-full mb-6">
-            Pricing
-          </span>
-          <h2 className="font-serif text-4xl md:text-5xl font-bold text-white mb-4">
-            Free during beta
-          </h2>
-          <p className="font-sans text-white/60 text-lg max-w-md mx-auto mb-12">
-            Full access while we&apos;re in beta. Pricing will be introduced with advanced features in v2.
-          </p>
-
-          <div className="max-w-sm mx-auto bg-white/5 backdrop-blur-xl border border-white/10 rounded-3xl p-8 text-left space-y-6 shadow-[0_30px_60px_-15px_rgba(0,0,0,0.5)] transition-all duration-500 hover:bg-white/10 hover:border-white/20 hover:-translate-y-2 hover:shadow-[0_40px_80px_-20px_rgba(0,0,0,0.6)] relative overflow-hidden">
-            <div className="absolute inset-0 bg-gradient-to-br from-white/10 to-transparent opacity-0 hover:opacity-100 transition-opacity duration-500 pointer-events-none" />
-            <div className="relative z-10">
-              <p className="font-sans text-xs uppercase tracking-widest text-[#8C9A84] mb-2">Beta Plan</p>
-              <div className="flex items-end gap-2">
-                <span className="font-serif text-5xl font-bold text-white">$0</span>
-                <span className="font-sans text-white/40 text-sm mb-2">/ month</span>
-              </div>
-            </div>
-
-            <ul className="space-y-3 relative z-10">
-              {features.map((f) => (
-                <li key={f} className="flex items-start gap-3">
-                  <CheckCircle2 size={16} strokeWidth={1.5} className="text-[#8C9A84] flex-shrink-0 mt-0.5" />
-                  <span className="font-sans text-sm text-white/80">{f}</span>
-                </li>
-              ))}
-            </ul>
-
-            <Link
-              href="/signup"
-              className="block relative z-10 w-full text-center rounded-full bg-white text-[#2D3A31] font-sans text-sm uppercase tracking-widest px-8 py-3 hover:bg-[#F2F0EB] hover:scale-[1.02] active:scale-[0.98] transition-all duration-300"
-            >
-              Get started free
-            </Link>
+    <section id="pricing" className="py-24 md:py-48 bg-[#9E5946] text-[#F9F8F4] overflow-hidden">
+      <div className="max-w-[1400px] mx-auto px-4 md:px-8">
+        
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-16 gap-8">
+          <div>
+            <h2 className="font-[family-name:var(--font-serif)] text-5xl md:text-[8rem] font-bold leading-none tracking-tighter mb-4">
+              Beta Plan
+            </h2>
+            <p className="font-[family-name:var(--font-sans)] text-[#F9F8F4]/80 text-xl max-w-md">
+              Full access while we&apos;re in beta. Pricing will be introduced with advanced features in v2.
+            </p>
           </div>
-        </motion.div>
+          <div className="font-[family-name:var(--font-sans)] text-[10rem] md:text-[16rem] leading-none font-black tracking-tighter text-[#F9F8F4]">
+            $0
+          </div>
+        </div>
+
+        <div className="w-full h-px bg-[#F9F8F4]/20 mb-16" />
+
+        <div className="flex flex-col lg:flex-row gap-16 justify-between items-start">
+          <ul className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-6 w-full lg:w-2/3">
+            {features.map((f, i) => (
+              <motion.li 
+                key={f}
+                initial={{ opacity: 0, y: 10 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.5, delay: i * 0.05 }}
+                className="flex items-center gap-4 font-[family-name:var(--font-sans)] text-xl"
+              >
+                <div className="w-2 h-2 bg-[#F9F8F4] rounded-full flex-shrink-0" />
+                {f}
+              </motion.li>
+            ))}
+          </ul>
+          
+          <div className="w-full lg:w-1/3 flex justify-end">
+            <CinematicButton 
+              href="/signup"
+              variant="outline"
+              className="w-full md:w-auto text-xl md:text-2xl px-12 py-12 rounded-full border border-[#F9F8F4] text-[#F9F8F4] hover:bg-[#F9F8F4] hover:text-[#9E5946]"
+            >
+              Start for free
+            </CinematicButton>
+          </div>
+        </div>
+
       </div>
     </section>
   );

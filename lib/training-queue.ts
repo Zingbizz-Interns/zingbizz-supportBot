@@ -13,7 +13,7 @@ import {
 } from "@/lib/db/queries/training-jobs";
 import { type TrainingJob, type TrainingJobPayload } from "@/lib/db/schema";
 import { runIngestionPipeline, type IngestionFile, type IngestionPage } from "@/lib/ingestion/pipeline";
-import { extractTextFromPdf, extractTextFromPlainText } from "@/lib/ingestion/pdf-parser";
+import { extractTextFromPdf, extractTextFromPlainText, extractTextFromMarkdown } from "@/lib/ingestion/pdf-parser";
 
 type QueueGlobal = typeof globalThis & {
   __trainingQueueDrain?: Promise<void>;
@@ -65,9 +65,15 @@ async function resolveTrainingFiles(
 
       const buffer = Buffer.from(await new Response(blobResult.stream).arrayBuffer());
       const fileName = parsed.pathname.split("/").pop() ?? "file";
-      const content = fileName.toLowerCase().endsWith(".pdf")
-        ? await extractTextFromPdf(buffer)
-        : await extractTextFromPlainText(buffer);
+      const lowerName = fileName.toLowerCase();
+      let content: string;
+      if (lowerName.endsWith(".pdf")) {
+        content = await extractTextFromPdf(buffer);
+      } else if (lowerName.endsWith(".md")) {
+        content = extractTextFromMarkdown(buffer);
+      } else {
+        content = await extractTextFromPlainText(buffer);
+      }
 
       const trimmedContent = content.trim();
       if (!trimmedContent) {
@@ -98,7 +104,7 @@ async function processTrainingJob(job: TrainingJob, workerId: string): Promise<v
 
   if (pages.length === 0 && files.length === 0) {
     throw new Error(
-      "No content could be extracted from the provided files. The PDF may be corrupt, scanned-only, or password-protected."
+      "No content could be extracted from the provided files. PDFs may be corrupt, scanned-only, or password-protected. Markdown and text files must contain readable text."
     );
   }
 

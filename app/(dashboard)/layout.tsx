@@ -4,6 +4,9 @@ import { Sidebar } from "@/components/dashboard/sidebar";
 import { BottomNav } from "@/components/dashboard/bottom-nav";
 import { TopBar } from "@/components/dashboard/top-bar";
 import type { Metadata } from "next";
+import { getChatbotByUserId } from "@/lib/db/queries/chatbots";
+import { recoverTrainingStatus } from "@/lib/training-status";
+import { isChatbotReady } from "@/lib/chatbot-navigation";
 
 export const metadata: Metadata = {
   robots: {
@@ -31,14 +34,19 @@ export default async function DashboardLayout({
     redirect("/login");
   }
 
+  const chatbot = await recoverTrainingStatus(
+    await getChatbotByUserId(session.user.id)
+  );
+  const canCustomize = isChatbotReady(chatbot);
+
   return (
     <div className="min-h-screen bg-[#F9F8F4] flex">
-      <Sidebar />
-      <main className="flex-1 lg:ml-[250px] pb-20 lg:pb-0">
+      <Sidebar canCustomize={canCustomize} />
+      <main className="flex-1 lg:ml-[280px] pb-20 lg:pb-0">
         <TopBar />
         {children}
       </main>
-      <BottomNav />
+      <BottomNav canCustomize={canCustomize} />
     </div>
   );
 }

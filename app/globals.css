@@ -36,10 +36,11 @@
   --color-foreground: #2D3A31;
   --color-primary: #2D3A31;
   --color-primary-hover: #3d5245;
-  --color-sage: #8C9A84;
+  --color-sage: #6A7A62; /* Darkened from #8C9A84 for WCAG AA */
+  --color-sage-light: #8C9A84; /* Maintained old sage as light variant */
   --color-clay: #DCCFC2;
   --color-stone: #E6E2DA;
-  --color-terracotta: #C27B66;
+  --color-terracotta: #9E5946; /* Darkened from #C27B66 for WCAG AA */
   --color-surface: #FFFFFF;
   --color-muted: #F2F0EB;
 
@@ -73,5 +74,19 @@
 
   * {
     box-sizing: border-box;
+  }
+}
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+  
+  .hide-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  .hide-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
   }
 }
