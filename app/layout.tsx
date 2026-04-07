@@ -108,10 +108,14 @@ export default function RootLayout({
   };
 
   return (
-    <html lang="en" suppressHydrationWarning className={`${playfairDisplay.variable} ${sourceSans3.variable}`}>
+    <html
+      lang="en"
+      suppressHydrationWarning
+      className={`relative ${playfairDisplay.variable} ${sourceSans3.variable}`}
+    >
       <body
         suppressHydrationWarning
-        className="bg-[#F9F8F4] text-[#2D3A31] font-sans antialiased"
+        className="relative bg-[#F9F8F4] text-[#2D3A31] font-sans antialiased"
       >
         {/* Paper grain texture overlay — mandatory, defines the design */}
         <div

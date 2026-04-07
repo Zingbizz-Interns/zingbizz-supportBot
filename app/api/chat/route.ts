@@ -1,3 +1,5 @@
+import { errorResponse } from "@/lib/api-response";
+import { extractErrorMessage } from "@/lib/errors";
 import { ragQuery } from "@/lib/ai/rag";
 import { chatRateLimit } from "@/lib/rate-limit";
 import { parseBody } from "@/lib/validation/parse";
@@ -103,10 +105,10 @@ export async function POST(request: Request) {
       headers: responseHeaders,
     });
   } catch (error) {
-    const msg = error instanceof Error ? error.message : "Internal server error";
-    return Response.json(
-      { error: msg },
-      { status: 500, headers: CORS_HEADERS }
+    return errorResponse(
+      extractErrorMessage(error, "Internal server error"),
+      500,
+      CORS_HEADERS
     );
   }
 }

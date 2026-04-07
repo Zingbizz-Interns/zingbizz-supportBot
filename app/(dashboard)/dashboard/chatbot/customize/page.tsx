@@ -3,6 +3,7 @@ import { auth } from "@/lib/auth";
 import { CustomizePageClient } from "@/components/dashboard/customize-page-client";
 import { getChatbotByUserId } from "@/lib/db/queries/chatbots";
 import { recoverTrainingStatus } from "@/lib/training-status";
+import type { ChatbotConfig } from "@/types/chatbot";
 
 export default async function CustomizePage() {
   const session = await auth();
@@ -19,5 +20,14 @@ export default async function CustomizePage() {
     redirect("/dashboard/chatbot/setup");
   }
 
-  return <CustomizePageClient chatbot={chatbot} />;
+  const chatbotConfig: ChatbotConfig = {
+    id: chatbot.id,
+    name: chatbot.name,
+    trainingStatus: chatbot.trainingStatus as ChatbotConfig["trainingStatus"],
+    welcomeMessage: chatbot.welcomeMessage,
+    fallbackMessage: chatbot.fallbackMessage,
+    brandColor: chatbot.brandColor,
+  };
+
+  return <CustomizePageClient chatbot={chatbotConfig} />;
 }

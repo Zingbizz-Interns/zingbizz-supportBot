@@ -5,6 +5,7 @@ import { FileText, Loader2, Plus, Trash2 } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { MAX_STATUS_FAILURES } from "@/lib/config/constants";
 import type { Source, TrainingStatus } from "./sources/types";
 import { useSourceActions } from "./sources/use-source-actions";
 import { useTrainingPoller } from "./sources/use-training-poller";
@@ -32,13 +33,11 @@ export function SourcesPageClient({
     deletingKey,
     selected,
     bulkDeleting,
-    pollFailureCountRef,
     refreshSources,
     toggleSelect,
     toggleSelectAll,
     handleDelete,
     handleBulkDelete,
-    MAX_STATUS_FAILURES,
   } = useSourceActions({ chatbotId, initialSources, initialTrainingStatus });
 
   useTrainingPoller({
@@ -47,7 +46,6 @@ export function SourcesPageClient({
     setTrainingStatus,
     setError,
     refreshSources,
-    pollFailureCountRef,
     maxFailures: MAX_STATUS_FAILURES,
   });
 

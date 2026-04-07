@@ -59,6 +59,7 @@ npm run build:widget
 - Retrieved chunks are sanitized at query time to reduce noisy footer/contact boilerplate in prompts.
 - The widget now guards against zero-token chat streams so blank assistant bubbles do not get saved into history.
 - `public/widget.js` is generated from `widget-src/` with `npm run build:widget`.
+- Uploads support `.pdf`, `.txt`, `.md`, `.docx`, `.xlsx`, and `.csv`, with spreadsheets indexed as row-wise text plus markdown tables.
 
 ## Documentation
 

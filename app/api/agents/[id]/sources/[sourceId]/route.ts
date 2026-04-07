@@ -1,6 +1,8 @@
+import { errorResponse, jsonResponse } from "@/lib/api-response";
 import { del } from "@vercel/blob";
 import { requireOwnedChatbot, isAuthError } from "@/lib/auth-helpers";
 import { deleteDocumentsBySource, getSourceBlobUrl } from "@/lib/db/queries/documents";
+import { extractErrorMessage } from "@/lib/errors";
 
 export async function DELETE(
   _request: Request,
@@ -31,9 +33,8 @@ export async function DELETE(
       }
     }
 
-    return Response.json({ success: true });
+    return jsonResponse({ success: true });
   } catch (error) {
-    const msg = error instanceof Error ? error.message : "Internal server error";
-    return Response.json({ error: msg }, { status: 500 });
+    return errorResponse(extractErrorMessage(error, "Internal server error"), 500);
   }
 }

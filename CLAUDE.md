@@ -1,202 +1,143 @@
-# CLAUDE.md — AI Assistant Instructions
+# CLAUDE.md
 
-This file provides context and rules for AI assistants (Claude, Cursor, Copilot, etc.) working on this codebase.
+Repo guidance for AI coding assistants working in this project.
 
----
+## Project Summary
 
-## What This Project Is
+ZingDesk is a Next.js 16 SaaS app for creating one embeddable support chatbot per user. Users can scrape up to 10 site pages and/or upload files, train a RAG index, customize the bot, and embed a vanilla-JS widget served from `public/widget.js`.
 
-An AI-powered chatbot SaaS MVP. Small business owners connect their website URL or upload documents, and the platform trains a RAG-based chatbot that can be embedded on any website via a `<script>` tag.
+## Tech Stack
 
-**Full documentation is in `/docs/`** — read those files before making significant changes.
+- Next.js 16 App Router + React 19
+- NextAuth v5 beta with JWT sessions
+- Neon Postgres + pgvector + Drizzle ORM
+- Vercel AI SDK + `@ai-sdk/openai`
+- OpenAI embeddings with configurable dimensions (`EMBEDDING_DIMENSIONS`, default 1536)
+- Upstash Redis rate limits
+- Vercel Blob for uploaded source files
+- Tailwind CSS v4
+- Widget bundle built with esbuild from `widget-src/`
 
-| Doc | Read when... |
-|-----|-------------|
-| `docs/overview.md` | Understanding the product and user journey |
-| `docs/architecture.md` | Understanding the RAG pipeline, widget, or auth flow |
-| `docs/tech-stack.md` | Choosing libraries, adding dependencies |
-| `docs/database-schema.md` | Modifying DB schema or writing queries |
-| `docs/api-design.md` | Adding or modifying API routes |
-| `docs/design-system.md` | Building or modifying UI components |
-| `docs/project-structure.md` | Understanding where files belong |
+## Source Of Truth
 
----
+- DB schema: `lib/db/schema.ts`
+- DB access/query helpers: `lib/db/queries/*`
+- Auth config: `lib/auth.ts`
+- Route protection: `proxy.ts`
+- RAG orchestration: `lib/ai/rag.ts`
+- Chat model streaming: `lib/ai/chat.ts`
+- Embeddings: `lib/ai/embed.ts`
+- Scraping: `lib/ingestion/scraper.ts`
+- Ingestion pipeline: `lib/ingestion/pipeline.ts`
+- Training queue: `lib/training-queue.ts`
+- Request validation: `lib/validation/schemas.ts`
+- Widget source: `widget-src/*`
 
-## Tech Stack (Quick Reference)
+## Architecture Rules
 
-- **Framework**: Next.js 16 App Router
-- **Auth**: NextAuth.js v5 (Credentials + optional Google/GitHub OAuth, JWT sessions)
-- **Database**: Neon (Postgres + pgvector) + Drizzle ORM
-- **LLM**: OpenAI chat models via Vercel AI SDK (`@ai-sdk/openai`)
-- **Embeddings**: OpenAI `text-embedding-3-small` via `@ai-sdk/openai` (1536 dims)
-- **Streaming**: Vercel AI SDK `streamText()` + custom widget stream handling
-- **File Storage**: Vercel Blob
-- **Rate Limiting**: Upstash Redis (`@upstash/ratelimit`)
-- **Scraping**: Custom `fetch` + Cheerio scraper with boilerplate cleanup (NOT Playwright)
-- **Styling**: Tailwind CSS v4
-- **Icons**: Lucide React (`strokeWidth={1.5}` always)
-- **Fonts**: Playfair Display (headings) + Source Sans 3 (body/UI)
-- **Widget**: Separate source in `widget-src/`, bundled with esbuild → `public/widget.js`
+1. Keep business logic out of `app/` route files when possible. Put shared logic in `lib/`.
+2. Do not store raw uploaded file contents in Postgres. Store extracted chunks in `documents`; original files live in Vercel Blob.
+3. Do not introduce Playwright/Puppeteer scraping here unless the requirement explicitly changes. Current scraping is `fetch` + Cheerio with SSRF checks and content limits.
+4. Preserve CORS on the public cross-origin endpoints:
+   - `POST /api/chat`
+   - `GET /api/agents/[id]/config`
+5. Preserve ownership checks on protected agent/chatbot APIs. The public config route is intentionally unauthenticated; most other `/api/agents/*` routes are not.
+6. Keep the paper-grain overlay in `app/layout.tsx`; it is part of the current visual identity.
+7. Keep the widget framework-free. It is plain TypeScript/DOM code bundled to one browser file.
 
----
+## Current Product Constraints
 
-## Critical Rules
+- One chatbot per user is enforced by a unique DB index on `chatbots.user_id`.
+- Chat history is not persisted server-side. The widget keeps history in memory only.
+- Training supports `replace` and `append` modes.
+- Training accepts up to 10 scraped pages and up to 10 uploaded files per request.
+- Uploads allow `.pdf`, `.txt`, `.md`, `.docx`, `.xlsx`, and `.csv` up to 10 MB.
+- Scraping caps page count at 10 and applies character budgets.
 
-### Never do these:
+## Authentication And Routing
 
-1. **Never use Playwright or Puppeteer** for scraping — they're too heavy for Vercel serverless. Use Cheerio + node-fetch. Only consider a headless browser API service (Browserbase, ScrapingBee) if JS-rendered scraping is specifically needed.
+- `proxy.ts` protects `/dashboard` and `/dashboard/:path*`.
+- Sessions use JWT strategy; there is no DB-backed session table.
+- Credentials auth is always available.
+- Google auth is enabled only when `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` exist.
+- GitHub auth is enabled only when `GITHUB_ID` and `GITHUB_SECRET` exist.
 
-2. **Never store raw files in Postgres** — use Vercel Blob for original PDFs/text files. Only store extracted text chunks + embeddings in the `documents` table.
+## Rate Limits
 
-3. **Never hardcode API keys** — all secrets via environment variables. See `.env.example` for required vars.
+- Chat: `50 req / 1 min` per `chatbotId`
+- Training: `5 req / 10 min` per `userId`
+- Upload: `20 req / 10 min` per `userId`
+- Scrape: `10 req / 5 min` per `userId`
 
-4. **Never skip CORS headers on public endpoints** — `/api/chat` and `/api/agents/[id]/config` are called from external domains. They MUST have `Access-Control-Allow-Origin: *`.
+Defined in `lib/rate-limit.ts`.
 
-5. **Never add rate limiting to dashboard/auth routes** — only `/api/chat` (per `chatbotId`, 50 req/min via Upstash).
+## RAG Behavior
 
-6. **Never use Sage Green (`#8C9A84`) for body text** — fails WCAG AA contrast. Use Forest Green (`#2D3A31`) for all meaningful text. Sage is decorative only.
+`lib/ai/rag.ts` currently does this:
 
-7. **Never use terracotta (`#C27B66`) hover states in the dashboard** — terracotta is for the marketing/landing page and alert accents only. Dashboard button hover: `#3d5245`.
+1. Loads chatbot config.
+2. Embeds the user query, enriching short referential follow-ups with the last assistant turn.
+3. Searches top 5 document chunks with pgvector cosine distance.
+4. Sanitizes noisy retrieved content and removes duplicate chunks.
+5. Marks `answered=true` only if at least one cleaned result has similarity `>= 0.75`.
+6. Still allows lower-confidence context down to `0.45` into the prompt.
+7. Deduplicates source links before returning them.
+8. Logs every query to the `queries` table.
 
-8. **Never use staggered card layout (`translate-y-12`) in the dashboard** — stagger is for landing page feature grids only. Keep dashboard layouts aligned.
+Do not change these thresholds casually. They affect both product behavior and insights.
 
-9. **Never put Playfair Display on dashboard UI chrome** — navigation, form labels, table headers, and small UI text must use Source Sans 3.
+## Training Flow
 
-### Always do these:
+Training is queue-backed, not immediate:
 
-1. **Always include the paper texture overlay** in `app/layout.tsx` — it's the defining visual element of the design. See `docs/design-system.md` for the exact SVG code.
+1. `/api/train` validates input, checks ownership, trims page content to budget, and enqueues a `training_jobs` row.
+2. `lib/training-queue.ts` claims jobs, renews leases, downloads Blob files, extracts text, and runs ingestion.
+3. `lib/ingestion/pipeline.ts` chunks content, batches embeddings, writes `documents`, and updates chatbot `trainingStatus`.
 
-2. **Always pass the last 3–5 message pairs** from the widget when calling `/api/chat` — chat context is maintained client-side only (not stored in DB).
-   Filter out empty assistant turns before sending history.
+If you change training behavior, keep job lease/retry semantics intact.
 
-3. **Always validate `chatbotId` ownership** in protected API routes — check that the chatbot belongs to the authenticated user.
+## Widget Notes
 
-4. **Always log queries** to the `queries` table after each chat interaction — include `answered: false` if top similarity score < 0.75.
+- Entry: `widget-src/index.ts`
+- Output: `public/widget.js`
+- Build command: `npm run build:widget`
+- The widget auto-opens after 3 seconds.
+- The widget sends only recent in-memory history and filters empty turns before use.
+- Empty model streams are treated as errors via a guarded response path in `app/api/chat/route.ts`.
 
-5. **Always use `strokeWidth={1.5}`** on all Lucide React icons.
+## UI Notes
 
-6. **Always deduplicate sources** in RAG responses — if multiple chunks come from the same URL, show that URL once.
+- Fonts are defined in `app/layout.tsx`: Playfair Display and Source Sans 3.
+- The current palette repeatedly uses `#F9F8F4`, `#2D3A31`, `#8C9A84`, and `#C27B66`.
+- Lucide icons are consistently used with `strokeWidth={1.5}` across the current UI. Follow that unless there is a concrete reason not to.
 
----
-
-## Database
-
-- **ORM**: Drizzle ORM
-- **Schema file**: `lib/db/schema.ts` — single source of truth
-- **Client file**: `lib/db/client.ts` — Neon serverless driver
-- **Migrations**: `drizzle/migrations/` — generated with `npx drizzle-kit generate`
-
-**Vector search uses `<=>` (cosine distance)**:
-```sql
-ORDER BY embedding <=> $queryEmbedding LIMIT 5
-```
-
-**Fallback threshold**: `answered=false` is logged if `1 - (embedding <=> queryEmbedding) < 0.75`.
-The app still injects retrieved context when results exist; fallback behavior is prompt-driven rather than a hard API short-circuit.
-
----
-
-## Authentication
-
-- NextAuth.js v5 (`auth.ts` in `lib/`)
-- Sessions are JWT (no DB session table needed for MVP)
-- Protected routes: all `(dashboard)` group routes
-- Public routes: `/api/chat`, `/api/agents/[id]/config`, `public/widget.js`
-- `proxy.ts` handles route protection automatically
-- Google and GitHub OAuth providers are enabled only when their env vars are present
-
----
-
-## RAG Pipeline
-
-The core logic lives in `lib/ai/rag.ts`. The flow:
-
-```
-widget message → embed query → vector search (top-5) → check similarity threshold
-  → sanitize noisy retrieved chunks + dedupe sources + filter empty history entries
-  → build prompt (system + context + history) → streamText(OpenAI)
-  → guard empty streams for the widget → log to queries table
-```
-
-**Ingestion pipeline** is in `lib/ingestion/pipeline.ts`:
-```
-URL/file → scrape/parse → chunk (~1000 chars, 80 overlap) → embed → store in documents
-```
-
-**Training runtime** is durable:
-```
-/api/train → enqueue training_jobs row in Postgres → leased in-process worker drains queue
-```
-
----
-
-## Chat Widget
-
-The embeddable widget is a **separate build target**:
-- Source: `widget-src/`
-- Output: `public/widget.js` (single file, ~20KB target)
-- Build: `esbuild` (no React — vanilla JS only for minimal footprint)
-- The widget maintains message history in memory (array), never in localStorage or server
-- The widget treats zero-token chat streams as an error state instead of leaving a blank assistant bubble
-
-Widget calls two public API endpoints:
-1. `GET /api/agents/{id}/config` — on load, to get name/color/welcome message
-2. `POST /api/chat` — on each user message (streaming)
-
----
-
-## Styling Rules
-
-All components must follow the Botanical design system. Key Tailwind classes:
-
-```
-Cards:         rounded-3xl bg-white shadow-sm hover:-translate-y-1 hover:shadow-lg duration-500
-Buttons:       rounded-full uppercase tracking-widest text-sm duration-300
-Inputs:        rounded-full bg-[#F2F0EB] focus:ring-2 focus:ring-[#8C9A84]
-Containers:    max-w-7xl mx-auto px-4 md:px-8
-Section pad:   py-24 md:py-32 (landing), py-8 md:py-12 (dashboard)
-```
-
-For full token reference, see `docs/design-system.md`.
-
----
-
-## Folder Conventions
-
-- `app/` — Next.js pages and API routes only. No business logic.
-- `lib/` — All business logic, DB queries, AI calls, utilities.
-- `components/ui/` — Reusable base components (no app-specific logic).
-- `components/dashboard/` — Dashboard-specific components.
-- `components/marketing/` — Landing page components.
-- `widget-src/` — Widget source (compiled separately).
-- `docs/` — Documentation (update when changing architecture).
-
----
+Do not invent a separate design system doc reference unless one actually exists in the repo.
 
 ## Environment Variables
 
-Required vars (see `.env.example`):
+See `.env.example`. Current vars include:
 
-```
-DATABASE_URL                 Neon pooled connection
-DATABASE_URL_UNPOOLED        Neon direct (for drizzle-kit migrations)
-AUTH_SECRET                  NextAuth secret
-OPENAI_API_KEY               For embeddings and chat
-OPENAI_CHAT_MODEL            Optional; defaults to gpt-4o-mini
-BLOB_READ_WRITE_TOKEN        Vercel Blob
-UPSTASH_REDIS_REST_URL       Upstash Redis
-UPSTASH_REDIS_REST_TOKEN     Upstash Redis
-```
+- `DATABASE_URL`
+- `DATABASE_URL_UNPOOLED`
+- `AUTH_SECRET`
+- `AUTH_URL`
+- `GOOGLE_CLIENT_ID`
+- `GOOGLE_CLIENT_SECRET`
+- `GITHUB_ID`
+- `GITHUB_SECRET`
+- `OPENAI_API_KEY`
+- `OPENAI_CHAT_MODEL`
+- `EMBEDDING_DIMENSIONS`
+- `BLOB_READ_WRITE_TOKEN`
+- `UPSTASH_REDIS_REST_URL`
+- `UPSTASH_REDIS_REST_TOKEN`
 
----
+## Working Rules For Assistants
 
-## MVP Constraints
-
-- **1 chatbot per user** — enforced in both application logic and the database
-- **No billing** — Stripe deferred to v2
-- **OAuth is optional** — credentials always, Google/GitHub when configured
-- **No chat history persistence** — history lives in widget memory only
-- **Max 10 pages scraped** per training run
-- **Max 10MB** per uploaded file
-
----
+1. Verify claims against code before documenting them.
+2. Do not make changes until you have 95% confidence in what needs to be built; ask follow-up questions until you reach that confidence.
+3. Prefer updating `lib/` helpers over duplicating logic inside route handlers.
+4. Keep public API contracts backward-compatible unless the task explicitly requires a breaking change.
+5. When changing widget request/response shapes, update both `widget-src/*` and the corresponding API route.
+6. When changing schema or constraints, update Drizzle schema and migrations together.
+7. Keep this file concise and accurate. If architecture changes, update this file in the same task.

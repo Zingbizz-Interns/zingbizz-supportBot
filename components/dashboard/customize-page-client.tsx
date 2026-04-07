@@ -4,14 +4,9 @@ import { useState } from "react";
 import { Save } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-
-interface Chatbot {
-  id: string;
-  name: string;
-  welcomeMessage: string;
-  fallbackMessage: string;
-  brandColor: string;
-}
+import { COLORS } from "@/lib/design-tokens";
+import { extractErrorMessage, fetchJsonOrThrow } from "@/lib/errors";
+import type { ChatbotConfig } from "@/types/chatbot";
 
 interface FormState {
   name: string;
@@ -20,12 +15,12 @@ interface FormState {
   brandColor: string;
 }
 
-export function CustomizePageClient({ chatbot }: { chatbot: Chatbot }) {
+export function CustomizePageClient({ chatbot }: { chatbot: ChatbotConfig }) {
   const [form, setForm] = useState<FormState>({
     name: chatbot.name ?? "",
     welcomeMessage: chatbot.welcomeMessage ?? "",
     fallbackMessage: chatbot.fallbackMessage ?? "",
-    brandColor: chatbot.brandColor ?? "#2D3A31",
+    brandColor: chatbot.brandColor ?? COLORS.primary,
   });
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -41,20 +36,15 @@ export function CustomizePageClient({ chatbot }: { chatbot: Chatbot }) {
     setSuccessMsg(null);
 
     try {
-      const res = await fetch(`/api/agents/${chatbot.id}`, {
+      await fetchJsonOrThrow<{ chatbot: ChatbotConfig }>(`/api/agents/${chatbot.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(form),
       });
 
-      if (!res.ok) {
-        const body = await res.json().catch(() => ({}));
-        throw new Error(body.error ?? "Failed to save");
-      }
-
       setSuccessMsg("Changes saved successfully.");
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Something went wrong");
+      setError(extractErrorMessage(err));
     } finally {
       setSaving(false);
     }

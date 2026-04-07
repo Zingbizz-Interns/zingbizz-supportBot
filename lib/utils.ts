@@ -5,6 +5,12 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
+export function pickDefined<T extends Record<string, unknown>>(values: T): Partial<T> {
+  return Object.fromEntries(
+    Object.entries(values).filter(([, value]) => value !== undefined)
+  ) as Partial<T>;
+}
+
 /** Normalize whitespace, tabs, and excessive newlines in text content. */
 export function normalizeText(text: string): string {
   return text

@@ -1,7 +1,9 @@
+import { errorResponse, jsonResponse } from "@/lib/api-response";
 import { z } from "zod";
 import { del } from "@vercel/blob";
 import { requireOwnedChatbot, isAuthError } from "@/lib/auth-helpers";
 import { deleteDocumentsBySource, getSourceBlobUrl } from "@/lib/db/queries/documents";
+import { extractErrorMessage } from "@/lib/errors";
 
 const bulkDeleteSchema = z.object({
   sourceKeys: z.array(z.string().min(1)).min(1, "At least one sourceKey is required"),
@@ -20,14 +22,14 @@ export async function DELETE(
   try {
     body = await request.json();
   } catch {
-    return Response.json({ error: "Invalid JSON body" }, { status: 400 });
+    return errorResponse("Invalid JSON body", 400);
   }
 
   const parsed = bulkDeleteSchema.safeParse(body);
   if (!parsed.success) {
-    return Response.json(
-      { error: parsed.error.issues[0]?.message ?? "Invalid request body" },
-      { status: 400 }
+    return errorResponse(
+      parsed.error.issues[0]?.message ?? "Invalid request body",
+      400
     );
   }
 
@@ -51,9 +53,8 @@ export async function DELETE(
       })
     );
 
-    return Response.json({ success: true, deleted: sourceKeys.length });
+    return jsonResponse({ success: true, deleted: sourceKeys.length });
   } catch (error) {
-    const msg = error instanceof Error ? error.message : "Internal server error";
-    return Response.json({ error: msg }, { status: 500 });
+    return errorResponse(extractErrorMessage(error, "Internal server error"), 500);
   }
 }

@@ -1,4 +1,6 @@
+import { errorResponse, jsonResponse } from "@/lib/api-response";
 import { requireAuth, isSessionError } from "@/lib/auth-helpers";
+import { extractErrorMessage } from "@/lib/errors";
 import { scrapeWebsite } from "@/lib/ingestion/scraper";
 import { parseBody } from "@/lib/validation/parse";
 import { scrapeRequestSchema } from "@/lib/validation/schemas";
@@ -10,9 +12,9 @@ export async function POST(request: Request) {
 
   const { success } = await scrapeRateLimit.limit(session.userId);
   if (!success) {
-    return Response.json(
-      { error: "Too many scrape requests. Please wait before scanning another website." },
-      { status: 429 }
+    return errorResponse(
+      "Too many scrape requests. Please wait before scanning another website.",
+      429
     );
   }
 
@@ -20,7 +22,7 @@ export async function POST(request: Request) {
   try {
     body = await request.json();
   } catch {
-    return Response.json({ error: "Invalid JSON body" }, { status: 400 });
+    return errorResponse("Invalid JSON body", 400);
   }
 
   const parsed = parseBody(scrapeRequestSchema, body);
@@ -32,15 +34,11 @@ export async function POST(request: Request) {
     const pages = await scrapeWebsite(url, 10);
 
     if (pages.length === 0) {
-      return Response.json(
-        { error: "No content could be scraped from this URL" },
-        { status: 422 }
-      );
+      return errorResponse("No content could be scraped from this URL", 422);
     }
 
-    return Response.json({ pages });
+    return jsonResponse({ pages });
   } catch (error) {
-    const msg = error instanceof Error ? error.message : "Internal server error";
-    return Response.json({ error: msg }, { status: 500 });
+    return errorResponse(extractErrorMessage(error, "Internal server error"), 500);
   }
 }

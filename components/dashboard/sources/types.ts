@@ -3,7 +3,7 @@ import type { TrainingStatus } from "@/lib/config/constants";
 export interface Source {
   url?: string;
   title: string;
-  source_type: "scrape" | "upload";
+  source_type: "scrape" | "upload" | "pdf" | "txt" | "md" | "docx" | "xlsx" | "csv";
   file_name?: string;
   chunk_count: number;
   created_at?: string | null;

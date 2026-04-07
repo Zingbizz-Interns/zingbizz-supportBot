@@ -13,6 +13,7 @@ import {
 } from "drizzle-orm/pg-core";
 import { relations, sql } from "drizzle-orm";
 import { EMBEDDING_DIMENSIONS } from "@/lib/config/embedding";
+import { COLORS } from "@/lib/design-tokens";
 
 // Custom pgvector type for configurable-dimensional embeddings
 const vector = customType<{ data: number[]; driverData: string }>({
@@ -77,7 +78,7 @@ export const chatbots = pgTable(
     fallbackMessage: text("fallback_message")
       .notNull()
       .default("I'm not sure about that. Please contact support for assistance."),
-    brandColor: text("brand_color").notNull().default("#2D3A31"),
+    brandColor: text("brand_color").notNull().default(COLORS.primary),
     trainingStatus: text("training_status").notNull().default("idle"),
     // trainingStatus values: idle | training | ready | error
     createdAt: timestamp("created_at").defaultNow().notNull(),
@@ -105,7 +106,7 @@ export const documents = pgTable(
       .references(() => chatbots.id, { onDelete: "cascade" }),
     content: text("content").notNull(),
     metadata: jsonb("metadata").notNull(),
-    // metadata shape: { url?: string, title?: string, source_type: 'scrape'|'upload', file_name?: string }
+    // metadata shape: { url?: string, title?: string, source_type: 'scrape'|'upload'|'pdf'|'txt'|'md'|'docx'|'xlsx'|'csv', file_name?: string }
     embedding: vector("embedding").notNull(),
     createdAt: timestamp("created_at").defaultNow().notNull(),
   },
@@ -224,7 +225,7 @@ export type NewQuery = typeof queries.$inferInsert;
 export type DocumentMetadata = {
   url?: string;
   title?: string;
-  source_type: "scrape" | "upload";
+  source_type: "scrape" | "upload" | "pdf" | "txt" | "md" | "docx" | "xlsx" | "csv";
   file_name?: string;
   blob_url?: string; // Full Vercel Blob URL — upload sources only, used for cleanup on deletion
 };

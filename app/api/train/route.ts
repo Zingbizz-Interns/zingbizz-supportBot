@@ -1,3 +1,4 @@
+import { errorResponse, jsonResponse } from "@/lib/api-response";
 import { requireAuth, isSessionError } from "@/lib/auth-helpers";
 import { getChatbotById, updateChatbot } from "@/lib/db/queries/chatbots";
 import { type IngestionPage } from "@/lib/ingestion/pipeline";
@@ -14,9 +15,9 @@ export async function POST(request: Request) {
 
   const { success } = await trainRateLimit.limit(session.userId);
   if (!success) {
-    return Response.json(
-      { error: "Too many training requests. Please wait a few minutes before trying again." },
-      { status: 429 }
+    return errorResponse(
+      "Too many training requests. Please wait a few minutes before trying again.",
+      429
     );
   }
 
@@ -24,7 +25,7 @@ export async function POST(request: Request) {
   try {
     body = await request.json();
   } catch {
-    return Response.json({ error: "Invalid JSON body" }, { status: 400 });
+    return errorResponse("Invalid JSON body", 400);
   }
 
   const parsed = parseBody(trainRequestSchema, body);
@@ -34,9 +35,9 @@ export async function POST(request: Request) {
 
   // Auth + ownership check
   const chatbot = await getChatbotById(chatbotId);
-  if (!chatbot) return Response.json({ error: "Not found" }, { status: 404 });
+  if (!chatbot) return errorResponse("Not found", 404);
   if (chatbot.userId !== session.userId) {
-    return Response.json({ error: "Forbidden" }, { status: 403 });
+    return errorResponse("Forbidden", 403);
   }
 
   // Trim page content to budget
@@ -59,10 +60,7 @@ export async function POST(request: Request) {
   const sanitizedFileKeys = fileKeys.filter((v): v is string => typeof v === "string");
 
   if (sanitizedPages.length === 0 && sanitizedFileKeys.length === 0) {
-    return Response.json(
-      { error: "No usable training content was provided." },
-      { status: 400 }
-    );
+    return errorResponse("No usable training content was provided.", 400);
   }
 
   try {
@@ -74,8 +72,8 @@ export async function POST(request: Request) {
   } catch (error) {
     console.error("[train] Failed to enqueue training job:", error);
     await updateChatbot(chatbotId, { trainingStatus: "error" }).catch(() => {});
-    return Response.json({ error: "Failed to queue training." }, { status: 500 });
+    return errorResponse("Failed to queue training.", 500);
   }
 
-  return Response.json({ success: true, trainingStatus: "training" });
+  return jsonResponse({ success: true, trainingStatus: "training" });
 }

@@ -3,6 +3,10 @@ import { normalizeText } from "@/lib/utils";
 
 const MAX_EXTRACTED_TEXT_CHARS = 100_000;
 const require = createRequire(import.meta.url);
+const mammoth = require("mammoth") as {
+  extractRawText(options: { buffer: Buffer }): Promise<{ value: string }>;
+};
+const XLSX = require("xlsx") as typeof import("xlsx");
 
 type PDFParseInstance = {
   getText(): Promise<{ text: string }>;
@@ -64,7 +68,7 @@ export async function extractTextFromPdf(buffer: Buffer): Promise<string> {
 }
 
 export async function extractTextFromPlainText(buffer: Buffer): Promise<string> {
-  return clampExtractedText(buffer.toString("utf-8"));
+  return clampExtractedText(normalizeText(buffer.toString("utf-8")));
 }
 
 function stripFrontmatter(text: string): string {
@@ -113,4 +117,95 @@ export function extractTextFromMarkdown(buffer: Buffer): string {
   const raw = buffer.toString("utf-8");
   const cleaned = stripMarkdownFormatting(stripCodeBlocks(stripFrontmatter(raw)));
   return clampExtractedText(normalizeText(cleaned));
+}
+
+export async function extractTextFromDocx(buffer: Buffer): Promise<string> {
+  const result = await mammoth.extractRawText({ buffer });
+  return clampExtractedText(normalizeText(result.value));
+}
+
+function escapeMarkdownCell(value: string): string {
+  return value.replace(/\|/g, "\\|").replace(/\r?\n/g, " ").trim();
+}
+
+function normalizeSheetRows(rows: unknown[][]): string[][] {
+  return rows
+    .map((row) =>
+      row.map((cell) => {
+        if (cell === null || cell === undefined) return "";
+        return normalizeText(String(cell)).trim();
+      })
+    )
+    .filter((row) => row.some((cell) => cell.length > 0));
+}
+
+function buildSpreadsheetSheetText(sheetName: string, rows: string[][]): string {
+  if (rows.length === 0) {
+    return `Sheet: ${sheetName}\nNo tabular data found.`;
+  }
+
+  const maxColumnCount = Math.max(...rows.map((row) => row.length));
+  const paddedRows = rows.map((row) => {
+    if (row.length >= maxColumnCount) return row;
+    return [...row, ...Array.from({ length: maxColumnCount - row.length }, () => "")];
+  });
+
+  const headerRow = paddedRows[0];
+  const headers = headerRow.map((cell, index) => cell || `Column ${index + 1}`);
+  const dataRows = paddedRows.slice(1);
+
+  const sections: string[] = [`Sheet: ${sheetName}`];
+
+  if (dataRows.length === 0) {
+    sections.push(`Columns: ${headers.join(" | ")}`);
+  } else {
+    sections.push("Rows:");
+    dataRows.forEach((row, rowIndex) => {
+      const cells = headers
+        .map((header, index) => {
+          const value = row[index]?.trim();
+          return value ? `${header}: ${value}` : null;
+        })
+        .filter((value): value is string => Boolean(value));
+
+      if (cells.length > 0) {
+        sections.push(`Row ${rowIndex + 1}: ${cells.join("; ")}`);
+      }
+    });
+  }
+
+  sections.push("Markdown table:");
+  sections.push(`| ${headers.map(escapeMarkdownCell).join(" | ")} |`);
+  sections.push(`| ${headers.map(() => "---").join(" | ")} |`);
+
+  if (dataRows.length === 0) {
+    sections.push(`| ${headers.map(() => "").join(" | ")} |`);
+  } else {
+    dataRows.forEach((row) => {
+      sections.push(`| ${row.map((cell) => escapeMarkdownCell(cell ?? "")).join(" | ")} |`);
+    });
+  }
+
+  return sections.join("\n");
+}
+
+export async function extractTextFromSpreadsheet(buffer: Buffer): Promise<string> {
+  const workbook = XLSX.read(buffer, { type: "buffer", dense: true });
+  const sheetTexts = workbook.SheetNames.map((sheetName) => {
+    const sheet = workbook.Sheets[sheetName];
+    const rows = XLSX.utils.sheet_to_json(sheet, {
+      header: 1,
+      blankrows: false,
+      defval: "",
+      raw: false,
+    }) as unknown[][];
+
+    return buildSpreadsheetSheetText(sheetName, normalizeSheetRows(rows));
+  }).filter((text) => text.trim().length > 0);
+
+  return clampExtractedText(normalizeText(sheetTexts.join("\n\n")));
+}
+
+export async function extractTextFromCsv(buffer: Buffer): Promise<string> {
+  return extractTextFromSpreadsheet(buffer);
 }

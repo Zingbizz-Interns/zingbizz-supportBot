@@ -12,8 +12,31 @@ import {
   retryOrFailTrainingJob,
 } from "@/lib/db/queries/training-jobs";
 import { type TrainingJob, type TrainingJobPayload } from "@/lib/db/schema";
+import { extractErrorMessage } from "@/lib/errors";
 import { runIngestionPipeline, type IngestionFile, type IngestionPage } from "@/lib/ingestion/pipeline";
-import { extractTextFromPdf, extractTextFromPlainText, extractTextFromMarkdown } from "@/lib/ingestion/pdf-parser";
+import {
+  extractTextFromCsv,
+  extractTextFromDocx,
+  extractTextFromMarkdown,
+  extractTextFromPdf,
+  extractTextFromPlainText,
+  extractTextFromSpreadsheet,
+} from "@/lib/ingestion/pdf-parser";
+
+type UploadSourceType = IngestionFile["sourceType"];
+
+function getUploadSourceType(fileName: string): UploadSourceType | null {
+  const normalized = fileName.toLowerCase();
+
+  if (normalized.endsWith(".pdf")) return "pdf";
+  if (normalized.endsWith(".txt")) return "txt";
+  if (normalized.endsWith(".md")) return "md";
+  if (normalized.endsWith(".docx")) return "docx";
+  if (normalized.endsWith(".xlsx")) return "xlsx";
+  if (normalized.endsWith(".csv")) return "csv";
+
+  return null;
+}
 
 type QueueGlobal = typeof globalThis & {
   __trainingQueueDrain?: Promise<void>;
@@ -65,14 +88,32 @@ async function resolveTrainingFiles(
 
       const buffer = Buffer.from(await new Response(blobResult.stream).arrayBuffer());
       const fileName = parsed.pathname.split("/").pop() ?? "file";
-      const lowerName = fileName.toLowerCase();
+      const sourceType = getUploadSourceType(fileName);
+      if (!sourceType) {
+        console.warn(`[training-queue] Unsupported file type for ${fileName}`);
+        continue;
+      }
+
       let content: string;
-      if (lowerName.endsWith(".pdf")) {
-        content = await extractTextFromPdf(buffer);
-      } else if (lowerName.endsWith(".md")) {
-        content = extractTextFromMarkdown(buffer);
-      } else {
-        content = await extractTextFromPlainText(buffer);
+      switch (sourceType) {
+        case "pdf":
+          content = await extractTextFromPdf(buffer);
+          break;
+        case "md":
+          content = extractTextFromMarkdown(buffer);
+          break;
+        case "docx":
+          content = await extractTextFromDocx(buffer);
+          break;
+        case "xlsx":
+          content = await extractTextFromSpreadsheet(buffer);
+          break;
+        case "csv":
+          content = await extractTextFromCsv(buffer);
+          break;
+        case "txt":
+          content = await extractTextFromPlainText(buffer);
+          break;
       }
 
       const trimmedContent = content.trim();
@@ -81,7 +122,7 @@ async function resolveTrainingFiles(
         continue;
       }
 
-      ingestionFiles.push({ fileName, content: trimmedContent, blobUrl });
+      ingestionFiles.push({ fileName, content: trimmedContent, sourceType, blobUrl });
     } catch (error) {
       console.error("[training-queue] Error resolving file", blobUrl, ":", error);
     }
@@ -104,7 +145,7 @@ async function processTrainingJob(job: TrainingJob, workerId: string): Promise<v
 
   if (pages.length === 0 && files.length === 0) {
     throw new Error(
-      "No content could be extracted from the provided files. PDFs may be corrupt, scanned-only, or password-protected. Markdown and text files must contain readable text."
+      "No content could be extracted from the provided files. PDFs may be corrupt, scanned-only, or password-protected. DOCX, TXT, MD, XLSX, and CSV files must contain readable text or tabular data."
     );
   }
 
@@ -142,7 +183,7 @@ async function drainTrainingQueue(): Promise<void> {
     try {
       await processTrainingJob(job, workerId);
     } catch (error) {
-      const message = error instanceof Error ? error.message : "Training job failed.";
+      const message = extractErrorMessage(error, "Training job failed.");
       console.error("[training-queue] Job failed:", job.id, message);
 
       const nextStatus = await retryOrFailTrainingJob(job, workerId, message);

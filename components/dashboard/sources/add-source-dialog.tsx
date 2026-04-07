@@ -7,7 +7,9 @@ import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { buildClientUploadPath, MAX_FILE_SIZE } from "@/lib/uploads";
+import { extractErrorMessage, fetchJsonOrThrow } from "@/lib/errors";
+import { buildClientUploadPath, MAX_FILE_SIZE, resolveUploadContentType } from "@/lib/uploads";
+import type { ScrapedPage } from "@/types/chatbot";
 import type { TrainingStatus } from "./types";
 
 interface AddSourceDialogProps {
@@ -30,7 +32,7 @@ export function AddSourceDialog({
   // URL tab
   const [urlInput, setUrlInput] = useState("");
   const [scraping, setScraping] = useState(false);
-  const [scrapedPages, setScrapedPages] = useState<Array<{ url: string; title: string; content: string }>>([]);
+  const [scrapedPages, setScrapedPages] = useState<ScrapedPage[]>([]);
   const [selectedPages, setSelectedPages] = useState<Set<string>>(new Set());
   const [training, setTraining] = useState(false);
 
@@ -39,7 +41,16 @@ export function AddSourceDialog({
   const [uploadingFile, setUploadingFile] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
-  function handleClose() {
+  async function startTraining(pages: ScrapedPage[], fileKeys: string[]) {
+    await fetchJsonOrThrow<{ success: boolean; trainingStatus: TrainingStatus }>(
+      "/api/train",
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ chatbotId, mode: "append", pages, fileKeys }),
+      }
+    );
+    setTrainingStatus("training");
     onClose();
   }
 
@@ -50,21 +61,16 @@ export function AddSourceDialog({
     setSelectedPages(new Set());
     setError(null);
     try {
-      const res = await fetch("/api/scrape", {
+      const data = await fetchJsonOrThrow<{ pages?: ScrapedPage[] }>("/api/scrape", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ url: urlInput.trim() }),
       });
-      if (!res.ok) {
-        const body = await res.json().catch(() => ({}));
-        throw new Error((body as { error?: string }).error ?? "Scraping failed");
-      }
-      const data = await res.json();
-      const pages: Array<{ url: string; title: string; content: string }> = data.pages ?? [];
+      const pages = data.pages ?? [];
       setScrapedPages(pages);
       setSelectedPages(new Set(pages.map((p) => p.url)));
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Scraping failed");
+      setError(extractErrorMessage(err, "Scraping failed"));
     } finally {
       setScraping(false);
     }
@@ -80,19 +86,9 @@ export function AddSourceDialog({
     setError(null);
     try {
       const pages = scrapedPages.filter((p) => selectedPages.has(p.url));
-      const res = await fetch("/api/train", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ chatbotId, mode: "append", pages, fileKeys: [] }),
-      });
-      if (!res.ok) {
-        const body = await res.json().catch(() => ({}));
-        throw new Error((body as { error?: string }).error ?? "Training failed");
-      }
-      setTrainingStatus("training");
-      handleClose();
+      await startTraining(pages, []);
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Training failed");
+      setError(extractErrorMessage(err, "Training failed"));
     } finally {
       setTraining(false);
     }
@@ -113,23 +109,13 @@ export function AddSourceDialog({
     try {
       const uploadData = await upload(buildClientUploadPath(fileInput.name), fileInput, {
         access: "private",
-        contentType: fileInput.type || "application/octet-stream",
+        contentType: resolveUploadContentType(fileInput.name, fileInput.type),
         handleUploadUrl: "/api/upload",
         multipart: true,
       });
-      const trainRes = await fetch("/api/train", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ chatbotId, mode: "append", pages: [], fileKeys: [uploadData.url] }),
-      });
-      if (!trainRes.ok) {
-        const body = await trainRes.json().catch(() => ({}));
-        throw new Error((body as { error?: string }).error ?? "Training failed");
-      }
-      setTrainingStatus("training");
-      handleClose();
+      await startTraining([], [uploadData.url]);
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Upload failed");
+      setError(extractErrorMessage(err, "Upload failed"));
     } finally {
       setUploadingFile(false);
     }
@@ -152,7 +138,7 @@ export function AddSourceDialog({
             </p>
           </div>
           <button
-            onClick={handleClose}
+            onClick={onClose}
             className="w-10 h-10 flex items-center justify-center rounded-full text-[#8C9A84] hover:bg-[#F2F0EB] hover:text-[#2D3A31] transition-colors"
           >
             <X size={18} strokeWidth={1.5} />
@@ -260,12 +246,12 @@ export function AddSourceDialog({
                   {fileInput ? fileInput.name : "Select Document"}
                 </p>
                 <p className="font-sans text-sm text-[#8C9A84] mt-2">
-                  PDF, TXT, or MD (Max 10MB)
+                  PDF, TXT, MD, DOCX, XLSX, or CSV (Max 10MB)
                 </p>
                 <input
                   ref={fileRef}
                   type="file"
-                  accept=".pdf,.txt,.md"
+                  accept=".pdf,.txt,.md,.docx,.xlsx,.csv"
                   className="hidden"
                   onChange={(e) => setFileInput(e.target.files?.[0] ?? null)}
                 />

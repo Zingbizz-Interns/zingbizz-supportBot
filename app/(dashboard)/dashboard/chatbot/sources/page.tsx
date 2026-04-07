@@ -24,7 +24,18 @@ export default async function SourcesPage() {
   const sources = rawSources.map((s) => ({
     url: s.url ?? undefined,
     title: s.title ?? "",
-    source_type: (s.source_type === "upload" ? "upload" : "scrape") as "scrape" | "upload",
+    source_type: (
+      s.source_type === "scrape" ||
+      s.source_type === "upload" ||
+      s.source_type === "pdf" ||
+      s.source_type === "txt" ||
+      s.source_type === "md" ||
+      s.source_type === "docx" ||
+      s.source_type === "xlsx" ||
+      s.source_type === "csv"
+        ? s.source_type
+        : "txt"
+    ) as "scrape" | "upload" | "pdf" | "txt" | "md" | "docx" | "xlsx" | "csv",
     file_name: s.file_name ?? undefined,
     chunk_count: s.chunk_count,
     created_at: s.created_at,

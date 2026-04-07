@@ -1,5 +1,7 @@
+import { errorResponse, jsonResponse } from "@/lib/api-response";
 import { requireOwnedChatbot, isAuthError } from "@/lib/auth-helpers";
 import { getDocumentSources } from "@/lib/db/queries/documents";
+import { extractErrorMessage } from "@/lib/errors";
 
 export async function GET(
   _request: Request,
@@ -12,9 +14,8 @@ export async function GET(
 
   try {
     const sources = await getDocumentSources(id);
-    return Response.json({ sources });
+    return jsonResponse({ sources });
   } catch (error) {
-    const msg = error instanceof Error ? error.message : "Internal server error";
-    return Response.json({ error: msg }, { status: 500 });
+    return errorResponse(extractErrorMessage(error, "Internal server error"), 500);
   }
 }

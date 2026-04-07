@@ -1,4 +1,5 @@
 import { auth } from "@/lib/auth";
+import { errorResponse } from "@/lib/api-response";
 import { getChatbotById } from "@/lib/db/queries/chatbots";
 import type { Chatbot } from "@/lib/db/schema";
 
@@ -14,7 +15,7 @@ interface SessionResult {
 export async function requireAuth(): Promise<SessionResult | AuthError> {
   const session = await auth();
   if (!session?.user?.id) {
-    return { response: Response.json({ error: "Unauthorized" }, { status: 401 }) };
+    return { response: errorResponse("Unauthorized", 401) };
   }
   return { userId: session.user.id, email: session.user.email ?? "" };
 }
@@ -41,15 +42,15 @@ export async function requireOwnedChatbot(
 ): Promise<AuthResult | AuthError> {
   const session = await auth();
   if (!session?.user?.id) {
-    return { response: Response.json({ error: "Unauthorized" }, { status: 401 }) };
+    return { response: errorResponse("Unauthorized", 401) };
   }
 
   const chatbot = await getChatbotById(chatbotId);
   if (!chatbot) {
-    return { response: Response.json({ error: "Not found" }, { status: 404 }) };
+    return { response: errorResponse("Not found", 404) };
   }
   if (chatbot.userId !== session.user.id) {
-    return { response: Response.json({ error: "Forbidden" }, { status: 403 }) };
+    return { response: errorResponse("Forbidden", 403) };
   }
 
   return { chatbot, session: { user: { id: session.user.id, email: session.user.email ?? "" } } };

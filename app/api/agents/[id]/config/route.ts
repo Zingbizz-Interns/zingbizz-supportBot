@@ -1,4 +1,6 @@
+import { errorResponse, jsonResponse } from "@/lib/api-response";
 import { getChatbotById } from "@/lib/db/queries/chatbots";
+import { extractErrorMessage } from "@/lib/errors";
 
 const CORS_HEADERS = {
   "Access-Control-Allow-Origin": "*",
@@ -20,13 +22,10 @@ export async function GET(
     const chatbot = await getChatbotById(id);
 
     if (!chatbot) {
-      return Response.json(
-        { error: "Not found" },
-        { status: 404, headers: CORS_HEADERS }
-      );
+      return errorResponse("Not found", 404, CORS_HEADERS);
     }
 
-    return Response.json(
+    return jsonResponse(
       {
         id: chatbot.id,
         name: chatbot.name,
@@ -43,11 +42,10 @@ export async function GET(
       }
     );
   } catch (error) {
-    const msg =
-      error instanceof Error ? error.message : "Internal server error";
-    return Response.json(
-      { error: msg },
-      { status: 500, headers: CORS_HEADERS }
+    return errorResponse(
+      extractErrorMessage(error, "Internal server error"),
+      500,
+      CORS_HEADERS
     );
   }
 }

@@ -52,10 +52,8 @@ const NOISY_TEXT_PATTERNS = [
   /phone:\s*\+?\d/i,
 ];
 
-const normalizeWhitespace = normalizeText;
-
 function isLikelyBoilerplate(text: string): boolean {
-  const normalized = normalizeWhitespace(text);
+  const normalized = normalizeText(text);
   if (!normalized) return true;
 
   if (NOISY_TEXT_PATTERNS.some((pattern) => pattern.test(normalized))) {
@@ -83,7 +81,7 @@ function getContentRoot($: ReturnType<typeof cheerio.load>) {
   const candidate = $(CONTENT_ROOT_SELECTORS)
     .toArray()
     .map((node) => $(node))
-    .find((element) => normalizeWhitespace(element.text()).length >= 200);
+    .find((element) => normalizeText(element.text()).length >= 200);
 
   return candidate ?? $("body");
 }
@@ -99,7 +97,7 @@ function extractText($: ReturnType<typeof cheerio.load>): string {
   const seen = new Set<string>();
 
   const textBlocks = blocks
-    .map((node) => normalizeWhitespace($(node).text()))
+    .map((node) => normalizeText($(node).text()))
     .filter((text) => text.length >= 20)
     .filter((text) => !isLikelyBoilerplate(text))
     .filter((text) => {
@@ -110,10 +108,10 @@ function extractText($: ReturnType<typeof cheerio.load>): string {
     });
 
   if (textBlocks.length > 0) {
-    return normalizeWhitespace(textBlocks.join("\n\n"));
+    return normalizeText(textBlocks.join("\n\n"));
   }
 
-  return normalizeWhitespace(root.text());
+  return normalizeText(root.text());
 }
 
 function clampText(text: string, maxChars: number): string {

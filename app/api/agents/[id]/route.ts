@@ -1,5 +1,8 @@
+import { errorResponse, jsonResponse } from "@/lib/api-response";
 import { requireAuth, isSessionError } from "@/lib/auth-helpers";
 import { getChatbotById, updateChatbot, deleteChatbot } from "@/lib/db/queries/chatbots";
+import { extractErrorMessage } from "@/lib/errors";
+import { pickDefined } from "@/lib/utils";
 import { parseBody } from "@/lib/validation/parse";
 import { updateChatbotSchema } from "@/lib/validation/schemas";
 
@@ -19,13 +22,13 @@ export async function PATCH(
 
   const { id } = await params;
   const { chatbot, error, status } = await getAuthorizedChatbot(id, session.userId);
-  if (!chatbot) return Response.json({ error }, { status });
+  if (!chatbot) return errorResponse(error, status);
 
   let body: unknown;
   try {
     body = await request.json();
   } catch {
-    return Response.json({ error: "Invalid JSON body" }, { status: 400 });
+    return errorResponse("Invalid JSON body", 400);
   }
 
   const parsed = parseBody(updateChatbotSchema, body);
@@ -34,17 +37,17 @@ export async function PATCH(
   const { name, welcomeMessage, fallbackMessage, brandColor } = parsed.data;
 
   try {
-    const updates: Parameters<typeof updateChatbot>[1] = {};
-    if (name !== undefined) updates.name = name;
-    if (welcomeMessage !== undefined) updates.welcomeMessage = welcomeMessage;
-    if (fallbackMessage !== undefined) updates.fallbackMessage = fallbackMessage;
-    if (brandColor !== undefined) updates.brandColor = brandColor;
+    const updates: Parameters<typeof updateChatbot>[1] = pickDefined({
+      name,
+      welcomeMessage,
+      fallbackMessage,
+      brandColor,
+    });
 
     const updated = await updateChatbot(id, updates);
-    return Response.json({ chatbot: updated });
+    return jsonResponse({ chatbot: updated });
   } catch (err) {
-    const msg = err instanceof Error ? err.message : "Internal server error";
-    return Response.json({ error: msg }, { status: 500 });
+    return errorResponse(extractErrorMessage(err, "Internal server error"), 500);
   }
 }
 
@@ -57,13 +60,12 @@ export async function DELETE(
 
   const { id } = await params;
   const { chatbot, error, status } = await getAuthorizedChatbot(id, session.userId);
-  if (!chatbot) return Response.json({ error }, { status });
+  if (!chatbot) return errorResponse(error, status);
 
   try {
     await deleteChatbot(id);
-    return Response.json({ success: true });
+    return jsonResponse({ success: true });
   } catch (err) {
-    const msg = err instanceof Error ? err.message : "Internal server error";
-    return Response.json({ error: msg }, { status: 500 });
+    return errorResponse(extractErrorMessage(err, "Internal server error"), 500);
   }
 }

@@ -1,4 +1,6 @@
+import { errorResponse, jsonResponse } from "@/lib/api-response";
 import { requireOwnedChatbot, isAuthError } from "@/lib/auth-helpers";
+import { extractErrorMessage } from "@/lib/errors";
 import {
   getTopQuestions,
   getUnansweredQuestions,
@@ -25,7 +27,7 @@ export async function GET(
       getDailyQuestionCounts(id, 7),
     ]);
 
-    return Response.json(
+    return jsonResponse(
       { topQuestions, unansweredQuestions, stats, dailyCounts },
       {
         headers: {
@@ -34,7 +36,6 @@ export async function GET(
       }
     );
   } catch (error) {
-    const msg = error instanceof Error ? error.message : "Internal server error";
-    return Response.json({ error: msg }, { status: 500 });
+    return errorResponse(extractErrorMessage(error, "Internal server error"), 500);
   }
 }

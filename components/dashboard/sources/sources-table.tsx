@@ -1,10 +1,48 @@
 "use client";
 
-import { FileText, Globe, Loader2, Trash2 } from "lucide-react";
+import { FileSpreadsheet, FileText, Globe, Loader2, ScrollText, Trash2 } from "lucide-react";
 import { motion } from "framer-motion";
 import { Card } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { sourceKey, formatDate, type Source } from "./types";
+
+function getSourcePresentation(sourceType: Source["source_type"]) {
+  switch (sourceType) {
+    case "scrape":
+      return {
+        icon: Globe,
+        badgeClassName: "bg-[#2D3A31] text-white",
+        label: "Scraped",
+      };
+    case "upload":
+      return {
+        icon: FileText,
+        badgeClassName: "bg-[#F2F0EB] text-[#2D3A31]",
+        label: "Uploaded",
+      };
+    case "xlsx":
+    case "csv":
+      return {
+        icon: FileSpreadsheet,
+        badgeClassName: "bg-[#F2F0EB] text-[#2D3A31]",
+        label: sourceType.toUpperCase(),
+      };
+    case "docx":
+      return {
+        icon: ScrollText,
+        badgeClassName: "bg-[#F2F0EB] text-[#2D3A31]",
+        label: "DOCX",
+      };
+    case "pdf":
+    case "txt":
+    case "md":
+      return {
+        icon: FileText,
+        badgeClassName: "bg-[#F2F0EB] text-[#2D3A31]",
+        label: sourceType.toUpperCase(),
+      };
+  }
+}
 
 interface SourcesTableProps {
   sources: Source[];
@@ -49,6 +87,8 @@ export function SourcesTable({
         {sources.map((source) => {
           const key = sourceKey(source);
           const isSelected = selected.has(key);
+          const presentation = getSourcePresentation(source.source_type);
+          const Icon = presentation.icon;
           return (
             <motion.li
               layout
@@ -65,11 +105,7 @@ export function SourcesTable({
               </div>
               <div className="min-w-0 w-full">
                 <div className="flex items-center gap-3 mb-1">
-                  {source.source_type === "scrape" ? (
-                    <Globe size={16} strokeWidth={1.5} className="text-[#8C9A84] flex-shrink-0" />
-                  ) : (
-                    <FileText size={16} strokeWidth={1.5} className="text-[#8C9A84] flex-shrink-0" />
-                  )}
+                  <Icon size={16} strokeWidth={1.5} className="text-[#8C9A84] flex-shrink-0" />
                   <p className="font-sans text-sm font-semibold text-[#2D3A31] truncate">
                     {source.title}
                   </p>
@@ -81,8 +117,8 @@ export function SourcesTable({
                 )}
               </div>
               <div>
-                <span className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-sans uppercase tracking-widest ${source.source_type === "scrape" ? "bg-[#2D3A31] text-white" : "bg-[#F2F0EB] text-[#2D3A31]"}`}>
-                  {source.source_type === "scrape" ? "Scraped" : "Uploaded"}
+                <span className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-sans uppercase tracking-widest ${presentation.badgeClassName}`}>
+                  {presentation.label}
                 </span>
               </div>
               <span className="font-sans text-sm font-semibold text-[#2D3A31]">

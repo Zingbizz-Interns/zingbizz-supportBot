@@ -1,4 +1,6 @@
+import { errorResponse, jsonResponse } from "@/lib/api-response";
 import { requireOwnedChatbot, isAuthError } from "@/lib/auth-helpers";
+import { extractErrorMessage } from "@/lib/errors";
 import { recoverTrainingStatus } from "@/lib/training-status";
 
 export async function GET(
@@ -12,10 +14,9 @@ export async function GET(
 
   try {
     const chatbot = await recoverTrainingStatus(authResult.chatbot);
-    if (!chatbot) return Response.json({ error: "Not found" }, { status: 404 });
-    return Response.json({ trainingStatus: chatbot.trainingStatus });
+    if (!chatbot) return errorResponse("Not found", 404);
+    return jsonResponse({ trainingStatus: chatbot.trainingStatus });
   } catch (error) {
-    const msg = error instanceof Error ? error.message : "Internal server error";
-    return Response.json({ error: msg }, { status: 500 });
+    return errorResponse(extractErrorMessage(error, "Internal server error"), 500);
   }
 }

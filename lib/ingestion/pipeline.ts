@@ -3,7 +3,7 @@ import { updateChatbot } from "../db/queries/chatbots";
 import { insertDocuments, deleteAllDocumentsByChatbot } from "../db/queries/documents";
 import { embedTexts } from "../ai/embed";
 import { EMBEDDING_BATCH_SIZE } from "../config/constants";
-import type { NewDocument } from "../db/schema";
+import type { DocumentMetadata, NewDocument } from "../db/schema";
 
 export interface IngestionPage {
   url: string;
@@ -14,6 +14,7 @@ export interface IngestionPage {
 export interface IngestionFile {
   fileName: string;
   content: string;
+  sourceType: Exclude<DocumentMetadata["source_type"], "scrape" | "upload">;
   blobUrl?: string; // Full Vercel Blob URL for cleanup on source deletion
 }
 async function ingestSourceChunks(
@@ -76,7 +77,7 @@ export async function runIngestionPipeline(
 
       await ingestSourceChunks(chatbotId, chunks, {
         title: file.fileName,
-        source_type: "upload" as const,
+        source_type: file.sourceType,
         file_name: file.fileName,
         ...(file.blobUrl ? { blob_url: file.blobUrl } : {}),
       }, onProgress);

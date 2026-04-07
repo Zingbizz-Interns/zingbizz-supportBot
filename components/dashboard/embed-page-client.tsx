@@ -5,12 +5,7 @@ import { Copy, Check, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-
-interface Chatbot {
-  id: string;
-  name: string;
-  trainingStatus: string;
-}
+import type { ChatbotSummary } from "@/types/chatbot";
 
 function CodeBlock({
   lang,
@@ -63,7 +58,7 @@ function Steps({ items }: { items: string[] }) {
   );
 }
 
-export function EmbedPageClient({ chatbot }: { chatbot: Chatbot | null }) {
+export function EmbedPageClient({ chatbot }: { chatbot: ChatbotSummary | null }) {
   const [origin] = useState(() =>
     typeof window === "undefined" ? "" : window.location.origin
   );
