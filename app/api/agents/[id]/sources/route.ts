@@ -1,6 +1,7 @@
 import { errorResponse, jsonResponse } from "@/lib/api-response";
 import { requireOwnedChatbot, isAuthError } from "@/lib/auth-helpers";
-import { getDocumentSources } from "@/lib/db/queries/documents";
+import { toDashboardSource } from "@/lib/db/queries/source-payload";
+import { listChatbotSources } from "@/lib/db/queries/chatbot-sources";
 import { extractErrorMessage } from "@/lib/errors";
 
 export async function GET(
@@ -13,8 +14,8 @@ export async function GET(
   if (isAuthError(authResult)) return authResult.response;
 
   try {
-    const sources = await getDocumentSources(id);
-    return jsonResponse({ sources });
+    const sources = await listChatbotSources(id);
+    return jsonResponse({ sources: sources.map(toDashboardSource) });
   } catch (error) {
     return errorResponse(extractErrorMessage(error, "Internal server error"), 500);
   }

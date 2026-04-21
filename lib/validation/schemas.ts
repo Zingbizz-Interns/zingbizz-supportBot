@@ -107,6 +107,10 @@ export const trainRequestSchema = z
     { message: "At least one page or fileKey must be provided" }
   );
 
+export const updateSourceSchema = z.object({
+  isEnabled: z.boolean(),
+});
+
 // ─── Inferred types ───────────────────────────────────────────────────────────
 
 export type RegisterInput = z.infer<typeof registerSchema>;
@@ -115,3 +119,4 @@ export type UpdateChatbotInput = z.infer<typeof updateChatbotSchema>;
 export type ChatRequestInput = z.infer<typeof chatRequestSchema>;
 export type ScrapeRequestInput = z.infer<typeof scrapeRequestSchema>;
 export type TrainRequestInput = z.infer<typeof trainRequestSchema>;
+export type UpdateSourceInput = z.infer<typeof updateSourceSchema>;

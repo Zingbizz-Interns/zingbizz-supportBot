@@ -50,6 +50,13 @@
       "when": 1776751800000,
       "tag": "0007_chatbot_personality",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1776762000000,
+      "tag": "0008_chatbot_sources",
+      "breakpoints": true
     }
   ]
 }

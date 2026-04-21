@@ -19,6 +19,7 @@ export function useSourceActions({
   const [trainingStatus, setTrainingStatus] = useState<TrainingStatus>(initialTrainingStatus);
   const [error, setError] = useState<string | null>(null);
   const [deletingKey, setDeletingKey] = useState<string | null>(null);
+  const [togglingKey, setTogglingKey] = useState<string | null>(null);
 
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [bulkDeleting, setBulkDeleting] = useState(false);
@@ -65,6 +66,37 @@ export function useSourceActions({
     }
   }
 
+  async function handleToggleEnabled(source: Source, isEnabled: boolean) {
+    const key = sourceKey(source);
+    const previous = sources;
+    setTogglingKey(key);
+    setError(null);
+    setSources((prev) =>
+      prev.map((item) => (sourceKey(item) === key ? { ...item, isEnabled } : item))
+    );
+
+    try {
+      const response = await fetchJsonOrThrow<{ source: Source }>(
+        `/api/agents/${chatbotId}/sources/${encodeURIComponent(key)}`,
+        {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ isEnabled }),
+        }
+      );
+
+      setSources((prev) =>
+        prev.map((item) => (sourceKey(item) === key ? response.source : item))
+      );
+    } catch (err: unknown) {
+      setSources(previous);
+      setError(extractErrorMessage(err));
+      throw err;
+    } finally {
+      setTogglingKey(null);
+    }
+  }
+
   async function handleBulkDelete() {
     if (selected.size === 0) return;
     setBulkDeleting(true);
@@ -93,12 +125,14 @@ export function useSourceActions({
     error,
     setError,
     deletingKey,
+    togglingKey,
     selected,
     bulkDeleting,
     refreshSources,
     toggleSelect,
     toggleSelectAll,
     handleDelete,
+    handleToggleEnabled,
     handleBulkDelete,
   };
 }

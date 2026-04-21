@@ -14,9 +14,21 @@ export async function insertDocuments(docs: NewDocument[]): Promise<void> {
 export async function searchDocuments(
   chatbotId: string,
   queryEmbedding: number[],
-  limit = 5
+  limit = 5,
+  enabledSourceKeys?: string[]
 ): Promise<Array<{ content: string; metadata: DocumentMetadata; similarity: number }>> {
+  if (enabledSourceKeys && enabledSourceKeys.length === 0) {
+    return [];
+  }
+
   const embeddingStr = `[${queryEmbedding.join(",")}]`;
+  const sourceFilter = enabledSourceKeys
+    ? sql`
+        AND COALESCE(metadata->>'url', metadata->>'file_name', metadata->>'title') IN (
+          ${sql.join(enabledSourceKeys.map((sourceKey) => sql`${sourceKey}`), sql`, `)}
+        )
+      `
+    : sql``;
 
   const result = await db.execute(sql`
     SELECT
@@ -25,6 +37,7 @@ export async function searchDocuments(
       1 - (embedding <=> ${embeddingStr}::vector) AS similarity
     FROM documents
     WHERE chatbot_id = ${chatbotId}
+    ${sourceFilter}
     ORDER BY embedding <=> ${embeddingStr}::vector
     LIMIT ${limit}
   `);
@@ -52,6 +65,21 @@ export async function deleteDocumentsBySource(
       OR metadata->>'file_name' = ${sourceKey}
     )
   `);
+}
+
+export async function countDocumentsBySource(
+  chatbotId: string,
+  sourceKey: string
+): Promise<number> {
+  const result = await db.execute(sql`
+    SELECT COUNT(*) AS chunk_count
+    FROM documents
+    WHERE chatbot_id = ${chatbotId}
+      AND COALESCE(metadata->>'url', metadata->>'file_name', metadata->>'title') = ${sourceKey}
+  `);
+
+  const row = result.rows[0] as { chunk_count: string | number } | undefined;
+  return Number(row?.chunk_count ?? 0);
 }
 
 export async function getSourceBlobUrl(

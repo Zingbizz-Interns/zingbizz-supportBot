@@ -1,6 +1,7 @@
 import { embedText } from "./embed";
 import { streamChatResponse } from "./chat";
 import { buildBehaviorBlock } from "./personality";
+import { listEnabledSourceKeys } from "../db/queries/chatbot-sources";
 import { searchDocuments } from "../db/queries/documents";
 import { logQuery } from "../db/queries/queries";
 import { getChatbotById } from "../db/queries/chatbots";
@@ -75,9 +76,15 @@ export async function ragQuery({
     ? enrichQueryFromHistory(sanitizedMessage, history)
     : sanitizedMessage;
   const queryEmbedding = await embedText(searchQuery);
+  const enabledSourceKeys = await listEnabledSourceKeys(chatbotId);
 
   // 3. Vector similarity search
-  const results = await searchDocuments(chatbotId, queryEmbedding, 5);
+  const results = await searchDocuments(
+    chatbotId,
+    queryEmbedding,
+    5,
+    enabledSourceKeys ?? undefined
+  );
 
   const cleanedResults = getContextResults(results);
 

@@ -2,6 +2,10 @@ import { errorResponse, jsonResponse } from "@/lib/api-response";
 import { z } from "zod";
 import { del } from "@vercel/blob";
 import { requireOwnedChatbot, isAuthError } from "@/lib/auth-helpers";
+import {
+  deleteChatbotSources,
+  listChatbotSources,
+} from "@/lib/db/queries/chatbot-sources";
 import { deleteDocumentsBySource, getSourceBlobUrl } from "@/lib/db/queries/documents";
 import { extractErrorMessage } from "@/lib/errors";
 
@@ -36,9 +40,14 @@ export async function DELETE(
   const { sourceKeys } = parsed.data;
 
   try {
+    const allSources = await listChatbotSources(id);
+    const blobUrlByKey = new Map(
+      allSources.map((source) => [source.sourceKey, source.blobUrl ?? null])
+    );
+
     await Promise.all(
       sourceKeys.map(async (key) => {
-        const blobUrl = await getSourceBlobUrl(id, key);
+        const blobUrl = blobUrlByKey.get(key) ?? await getSourceBlobUrl(id, key);
         await deleteDocumentsBySource(id, key);
         if (blobUrl) {
           try {
@@ -52,6 +61,7 @@ export async function DELETE(
         }
       })
     );
+    await deleteChatbotSources(id, sourceKeys);
 
     return jsonResponse({ success: true, deleted: sourceKeys.length });
   } catch (error) {

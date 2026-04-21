@@ -12,15 +12,24 @@ import { useTrainingPoller } from "./sources/use-training-poller";
 import { SourcesTable } from "./sources/sources-table";
 import { AddSourceDialog } from "./sources/add-source-dialog";
 import { BulkDeleteConfirm } from "./sources/bulk-delete-confirm";
+import { LivePreview } from "./sources/live-preview";
 
 interface SourcesPageClientProps {
   chatbotId: string;
+  chatbotName: string;
+  welcomeMessage: string;
+  brandColor: string;
+  logoUrl: string | null;
   initialSources: Source[];
   initialTrainingStatus: TrainingStatus;
 }
 
 export function SourcesPageClient({
   chatbotId,
+  chatbotName,
+  welcomeMessage,
+  brandColor,
+  logoUrl,
   initialSources,
   initialTrainingStatus,
 }: SourcesPageClientProps) {
@@ -31,12 +40,14 @@ export function SourcesPageClient({
     error,
     setError,
     deletingKey,
+    togglingKey,
     selected,
     bulkDeleting,
     refreshSources,
     toggleSelect,
     toggleSelectAll,
     handleDelete,
+    handleToggleEnabled,
     handleBulkDelete,
   } = useSourceActions({ chatbotId, initialSources, initialTrainingStatus });
 
@@ -51,8 +62,18 @@ export function SourcesPageClient({
 
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [showBulkConfirm, setShowBulkConfirm] = useState(false);
+  const [sourceVersion, setSourceVersion] = useState(0);
 
   const isTraining = trainingStatus === "training";
+
+  async function onToggleSourceEnabled(source: Source, isEnabled: boolean) {
+    try {
+      await handleToggleEnabled(source, isEnabled);
+      setSourceVersion((prev) => prev + 1);
+    } catch {
+      // Error state is already handled inside the source actions hook.
+    }
+  }
 
   return (
     <motion.div
@@ -153,13 +174,24 @@ export function SourcesPageClient({
             sources={sources}
             selected={selected}
             deletingKey={deletingKey}
+            togglingKey={togglingKey}
             bulkDeleting={bulkDeleting}
             trainingDisabled={isTraining}
             onToggleSelect={toggleSelect}
             onToggleSelectAll={toggleSelectAll}
             onDelete={handleDelete}
+            onToggleEnabled={onToggleSourceEnabled}
           />
         )}
+
+        <LivePreview
+          chatbotId={chatbotId}
+          chatbotName={chatbotName}
+          welcomeMessage={welcomeMessage}
+          brandColor={brandColor}
+          logoUrl={logoUrl}
+          sourceVersion={sourceVersion}
+        />
       </div>
 
       {/* Dialogs */}

@@ -48,26 +48,30 @@ interface SourcesTableProps {
   sources: Source[];
   selected: Set<string>;
   deletingKey: string | null;
+  togglingKey: string | null;
   bulkDeleting: boolean;
   trainingDisabled: boolean;
   onToggleSelect: (key: string) => void;
   onToggleSelectAll: () => void;
   onDelete: (source: Source) => void;
+  onToggleEnabled: (source: Source, isEnabled: boolean) => void;
 }
 
 export function SourcesTable({
   sources,
   selected,
   deletingKey,
+  togglingKey,
   bulkDeleting,
   trainingDisabled,
   onToggleSelect,
   onToggleSelectAll,
   onDelete,
+  onToggleEnabled,
 }: SourcesTableProps) {
   return (
     <Card hover={false} className="p-0 overflow-hidden">
-      <div className="hidden md:grid grid-cols-[56px_1fr_120px_90px_120px_64px] gap-4 px-6 py-4 bg-[#F9F8F4] border-b border-[#E6E2DA]">
+      <div className="hidden md:grid grid-cols-[56px_1fr_120px_90px_110px_120px_64px] gap-4 px-6 py-4 bg-[#F9F8F4] border-b border-[#E6E2DA]">
         <div className="flex items-center justify-center">
           <Checkbox
             checked={selected.size === sources.length && sources.length > 0}
@@ -79,6 +83,7 @@ export function SourcesTable({
         <span className="font-sans text-xs uppercase tracking-widest text-[#8C9A84]">Source</span>
         <span className="font-sans text-xs uppercase tracking-widest text-[#8C9A84]">Type</span>
         <span className="font-sans text-xs uppercase tracking-widest text-[#8C9A84]">Chunks</span>
+        <span className="font-sans text-xs uppercase tracking-widest text-[#8C9A84]">Enabled</span>
         <span className="font-sans text-xs uppercase tracking-widest text-[#8C9A84]">Added</span>
         <span className="font-sans text-xs uppercase tracking-widest text-[#8C9A84] text-center">Actions</span>
       </div>
@@ -93,7 +98,7 @@ export function SourcesTable({
             <motion.li
               layout
               key={key}
-              className={`flex flex-col md:grid md:grid-cols-[56px_1fr_120px_90px_120px_64px] gap-3 md:gap-4 items-start md:items-center px-6 py-5 transition-colors ${isSelected ? "bg-[#F9F8F4]" : "hover:bg-[#FCFBF8]"}`}
+              className={`flex flex-col md:grid md:grid-cols-[56px_1fr_120px_90px_110px_120px_64px] gap-3 md:gap-4 items-start md:items-center px-6 py-5 transition-colors ${isSelected ? "bg-[#F9F8F4]" : "hover:bg-[#FCFBF8]"}`}
             >
               <div className="flex items-center justify-center w-full md:w-auto">
                 <Checkbox
@@ -124,6 +129,18 @@ export function SourcesTable({
               <span className="font-sans text-sm font-semibold text-[#2D3A31]">
                 {source.chunk_count}
               </span>
+              <label className="inline-flex items-center gap-2 cursor-pointer">
+                <Checkbox
+                  checked={source.isEnabled}
+                  onCheckedChange={(checked) => onToggleEnabled(source, checked === true)}
+                  disabled={trainingDisabled || bulkDeleting || deletingKey === key || togglingKey === key}
+                  aria-label={`${source.isEnabled ? "Disable" : "Enable"} ${source.title}`}
+                  className="border-[#8C9A84]"
+                />
+                <span className="font-sans text-sm text-[#2D3A31]">
+                  {togglingKey === key ? "Saving..." : source.isEnabled ? "On" : "Off"}
+                </span>
+              </label>
               <span className="font-sans text-sm text-[#8C9A84]">
                 {formatDate(source.created_at)}
               </span>

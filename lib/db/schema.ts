@@ -99,6 +99,35 @@ export const chatbots = pgTable(
   })
 );
 
+// ─── Chatbot Sources ──────────────────────────────────────────────────────────
+
+export const chatbotSources = pgTable(
+  "chatbot_sources",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    chatbotId: uuid("chatbot_id")
+      .notNull()
+      .references(() => chatbots.id, { onDelete: "cascade" }),
+    sourceKey: text("source_key").notNull(),
+    title: text("title").notNull(),
+    url: text("url"),
+    sourceType: text("source_type").notNull(),
+    fileName: text("file_name"),
+    blobUrl: text("blob_url"),
+    chunkCount: integer("chunk_count").notNull().default(0),
+    isEnabled: boolean("is_enabled").notNull().default(true),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().notNull().$onUpdateFn(() => new Date()),
+  },
+  (table) => ({
+    chatbotIdIdx: index("chatbot_sources_chatbot_id_idx").on(table.chatbotId),
+    chatbotSourceUniqueIdx: uniqueIndex("chatbot_sources_chatbot_id_source_key_idx").on(
+      table.chatbotId,
+      table.sourceKey
+    ),
+  })
+);
+
 // ─── Documents (embeddings) ───────────────────────────────────────────────────
 
 export const documents = pgTable(
@@ -185,9 +214,17 @@ export const accountsRelations = relations(accounts, ({ one }) => ({
 
 export const chatbotsRelations = relations(chatbots, ({ one, many }) => ({
   user: one(users, { fields: [chatbots.userId], references: [users.id] }),
+  sources: many(chatbotSources),
   documents: many(documents),
   trainingJobs: many(trainingJobs),
   queries: many(queries),
+}));
+
+export const chatbotSourcesRelations = relations(chatbotSources, ({ one }) => ({
+  chatbot: one(chatbots, {
+    fields: [chatbotSources.chatbotId],
+    references: [chatbots.id],
+  }),
 }));
 
 export const documentsRelations = relations(documents, ({ one }) => ({
@@ -219,6 +256,8 @@ export type Account = typeof accounts.$inferSelect;
 export type NewAccount = typeof accounts.$inferInsert;
 export type Chatbot = typeof chatbots.$inferSelect;
 export type NewChatbot = typeof chatbots.$inferInsert;
+export type ChatbotSource = typeof chatbotSources.$inferSelect;
+export type NewChatbotSource = typeof chatbotSources.$inferInsert;
 export type Document = typeof documents.$inferSelect;
 export type NewDocument = typeof documents.$inferInsert;
 export type TrainingJob = typeof trainingJobs.$inferSelect;

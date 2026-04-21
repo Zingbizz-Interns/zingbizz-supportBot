@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { updateChatbotSchema } from "@/lib/validation/schemas";
+import { updateChatbotSchema, updateSourceSchema } from "@/lib/validation/schemas";
 
 describe("updateChatbotSchema — personality fields", () => {
   it("accepts valid personality", () => {
@@ -38,5 +38,15 @@ describe("updateChatbotSchema — personality fields", () => {
 
   it("rejects a non-URL logoUrl", () => {
     expect(updateChatbotSchema.safeParse({ logoUrl: "not-a-url" }).success).toBe(false);
+  });
+});
+
+describe("updateSourceSchema", () => {
+  it("accepts a boolean isEnabled", () => {
+    expect(updateSourceSchema.safeParse({ isEnabled: true }).success).toBe(true);
+  });
+
+  it("rejects a non-boolean isEnabled", () => {
+    expect(updateSourceSchema.safeParse({ isEnabled: "yes" }).success).toBe(false);
   });
 });
