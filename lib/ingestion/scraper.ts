@@ -172,7 +172,7 @@ async function fetchPage(url: string): Promise<FetchPageResult> {
       // SSRF protection: block private/reserved IPs and cloud metadata endpoints
       if (await isPrivateUrl(currentUrl)) {
         console.warn("[scrape] Blocked private/reserved URL:", currentUrl);
-        return null;
+        return { ok: false, reason: "fetch-failed" };
       }
 
       const res = await fetch(currentUrl, {
