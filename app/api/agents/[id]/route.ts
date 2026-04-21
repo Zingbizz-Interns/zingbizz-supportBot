@@ -1,3 +1,4 @@
+import { del } from "@vercel/blob";
 import { errorResponse, jsonResponse } from "@/lib/api-response";
 import { requireAuth, isSessionError } from "@/lib/auth-helpers";
 import { getChatbotById, updateChatbot, deleteChatbot } from "@/lib/db/queries/chatbots";
@@ -34,7 +35,29 @@ export async function PATCH(
   const parsed = parseBody(updateChatbotSchema, body);
   if (!parsed.ok) return parsed.response;
 
-  const { name, welcomeMessage, fallbackMessage, brandColor } = parsed.data;
+  const {
+    name,
+    welcomeMessage,
+    fallbackMessage,
+    brandColor,
+    logoUrl,
+    personality,
+    tone,
+    responseStyle,
+  } = parsed.data;
+
+  // Clean up old logo blob when logoUrl is changing to a different value
+  if (
+    logoUrl !== undefined &&
+    chatbot.logoUrl &&
+    chatbot.logoUrl !== logoUrl
+  ) {
+    try {
+      await del(chatbot.logoUrl);
+    } catch {
+      // Non-fatal: old blob cleanup failure should not block the update
+    }
+  }
 
   try {
     const updates: Parameters<typeof updateChatbot>[1] = pickDefined({
@@ -42,6 +65,10 @@ export async function PATCH(
       welcomeMessage,
       fallbackMessage,
       brandColor,
+      logoUrl,
+      personality,
+      tone,
+      responseStyle,
     });
 
     const updated = await updateChatbot(id, updates);

@@ -32,6 +32,7 @@ export async function GET(
         welcomeMessage: chatbot.welcomeMessage,
         brandColor: chatbot.brandColor,
         isReady: chatbot.trainingStatus === "ready",
+        logoUrl: chatbot.logoUrl ?? null,
       },
       {
         status: 200,
