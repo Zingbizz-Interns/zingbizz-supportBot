@@ -53,7 +53,11 @@
       "Bash(cat \"D:/Developer/zingBizz/chat-bot/app/\\(dashboard\\)/dashboard/insights/page.tsx\")",
       "Bash(cat \"D:/Developer/zingBizz/chat-bot/app/\\(dashboard\\)/dashboard/chatbot/embed/page.tsx\")",
       "Bash(rm:*)",
-      "Bash(xargs grep:*)"
+      "Bash(xargs grep:*)",
+      "Bash(npm test:*)",
+      "Bash(npm ls:*)",
+      "Bash(grep -E \"\\\\.\\(sql|ts|js\\)$\")",
+      "Bash(python3 -c ':*)"
     ]
   }
 }
