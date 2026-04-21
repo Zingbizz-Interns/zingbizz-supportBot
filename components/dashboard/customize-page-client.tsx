@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Save } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -8,12 +8,79 @@ import { COLORS } from "@/lib/design-tokens";
 import { extractErrorMessage, fetchJsonOrThrow } from "@/lib/errors";
 import type { ChatbotConfig } from "@/types/chatbot";
 
+// ─── Preset options ───────────────────────────────────────────────────────────
+
+const PERSONALITY_OPTIONS = [
+  { value: "friendly", label: "Friendly" },
+  { value: "professional", label: "Professional" },
+  { value: "empathetic", label: "Empathetic" },
+  { value: "authoritative", label: "Authoritative" },
+  { value: "witty", label: "Witty" },
+];
+
+const TONE_OPTIONS = [
+  { value: "formal", label: "Formal" },
+  { value: "casual", label: "Casual" },
+  { value: "professional", label: "Professional" },
+  { value: "conversational", label: "Conversational" },
+  { value: "direct", label: "Direct" },
+];
+
+const RESPONSE_STYLE_OPTIONS = [
+  { value: "concise", label: "Concise" },
+  { value: "detailed", label: "Detailed" },
+  { value: "conversational", label: "Conversational" },
+  { value: "technical", label: "Technical" },
+];
+
+// ─── Pill selector ────────────────────────────────────────────────────────────
+
+interface PillSelectorProps {
+  options: { value: string; label: string }[];
+  value: string;
+  brandColor: string;
+  onChange: (value: string) => void;
+}
+
+function PillSelector({ options, value, brandColor, onChange }: PillSelectorProps) {
+  return (
+    <div className="flex flex-wrap gap-2">
+      {options.map((opt) => {
+        const selected = opt.value === value;
+        return (
+          <button
+            key={opt.value}
+            type="button"
+            onClick={() => onChange(opt.value)}
+            className="px-4 py-1.5 rounded-full text-sm font-sans font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-offset-1"
+            style={
+              selected
+                ? { backgroundColor: brandColor, color: "#ffffff" }
+                : { backgroundColor: "#F2F0EB", color: "#2D3A31" }
+            }
+          >
+            {opt.label}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+// ─── Form state ───────────────────────────────────────────────────────────────
+
 interface FormState {
   name: string;
   welcomeMessage: string;
   fallbackMessage: string;
   brandColor: string;
+  logoUrl: string | null;
+  personality: string;
+  tone: string;
+  responseStyle: string;
 }
+
+// ─── Main component ───────────────────────────────────────────────────────────
 
 export function CustomizePageClient({ chatbot }: { chatbot: ChatbotConfig }) {
   const [form, setForm] = useState<FormState>({
@@ -21,13 +88,35 @@ export function CustomizePageClient({ chatbot }: { chatbot: ChatbotConfig }) {
     welcomeMessage: chatbot.welcomeMessage ?? "",
     fallbackMessage: chatbot.fallbackMessage ?? "",
     brandColor: chatbot.brandColor ?? COLORS.primary,
+    logoUrl: chatbot.logoUrl ?? null,
+    personality: chatbot.personality ?? "friendly",
+    tone: chatbot.tone ?? "professional",
+    responseStyle: chatbot.responseStyle ?? "concise",
   });
+
+  const [pendingLogoFile, setPendingLogoFile] = useState<File | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(chatbot.logoUrl ?? null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
-  function updateField(field: keyof FormState, value: string) {
+  // Revoke object URLs on change to prevent memory leaks
+  useEffect(() => {
+    if (!pendingLogoFile) return;
+    const url = URL.createObjectURL(pendingLogoFile);
+    setPreviewUrl(url);
+    return () => URL.revokeObjectURL(url);
+  }, [pendingLogoFile]);
+
+  function updateField<K extends keyof FormState>(field: K, value: FormState[K]) {
     setForm((prev) => ({ ...prev, [field]: value }));
+  }
+
+  function handleLogoFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setPendingLogoFile(file);
   }
 
   async function handleSave() {
@@ -36,10 +125,25 @@ export function CustomizePageClient({ chatbot }: { chatbot: ChatbotConfig }) {
     setSuccessMsg(null);
 
     try {
+      let logoUrl = form.logoUrl;
+
+      // Upload new logo if one was selected
+      if (pendingLogoFile) {
+        const formData = new FormData();
+        formData.append("image", pendingLogoFile);
+        const result = await fetchJsonOrThrow<{ logoUrl: string }>(
+          `/api/agents/${chatbot.id}/logo`,
+          { method: "POST", body: formData }
+        );
+        logoUrl = result.logoUrl;
+        updateField("logoUrl", logoUrl);
+        setPendingLogoFile(null);
+      }
+
       await fetchJsonOrThrow<{ chatbot: ChatbotConfig }>(`/api/agents/${chatbot.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(form),
+        body: JSON.stringify({ ...form, logoUrl }),
       });
 
       setSuccessMsg("Changes saved successfully.");
@@ -50,6 +154,9 @@ export function CustomizePageClient({ chatbot }: { chatbot: ChatbotConfig }) {
     }
   }
 
+  const avatarLetter = form.name ? form.name.charAt(0).toUpperCase() : "C";
+  const avatarSrc = previewUrl;
+
   return (
     <div className="py-8 md:py-12">
       <div className="max-w-5xl mx-auto px-4 md:px-8 space-y-8">
@@ -58,12 +165,64 @@ export function CustomizePageClient({ chatbot }: { chatbot: ChatbotConfig }) {
             Customize
           </h1>
           <p className="font-sans text-[#8C9A84] text-base">
-            Adjust your chatbot&apos;s name, messages, and appearance.
+            Adjust your chatbot&apos;s appearance, personality, and behavior.
           </p>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
           <Card hover={false} className="p-6 md:p-8 space-y-6">
+
+            {/* Logo Upload */}
+            <div className="space-y-3">
+              <label className="text-sm font-medium text-[#2D3A31] font-sans">
+                Logo
+              </label>
+              <div className="flex items-center gap-4">
+                <div
+                  className="w-16 h-16 rounded-full flex-shrink-0 flex items-center justify-center overflow-hidden"
+                  style={{ backgroundColor: avatarSrc ? "transparent" : form.brandColor }}
+                >
+                  {avatarSrc ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={avatarSrc}
+                      alt="Chatbot logo"
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <span className="text-white font-sans font-semibold text-xl">
+                      {avatarLetter}
+                    </span>
+                  )}
+                </div>
+                <div className="space-y-1">
+                  <button
+                    type="button"
+                    onClick={() => fileInputRef.current?.click()}
+                    className="text-sm font-sans font-medium text-[#2D3A31] underline underline-offset-2 hover:text-[#8C9A84] transition-colors"
+                  >
+                    {previewUrl ? "Change logo" : "Upload logo"}
+                  </button>
+                  <p className="text-xs text-[#8C9A84] font-sans">
+                    PNG, JPG, GIF or WebP · max 2 MB
+                  </p>
+                  {pendingLogoFile && (
+                    <p className="text-xs text-[#8C9A84] font-sans truncate max-w-[160px]">
+                      {pendingLogoFile.name}
+                    </p>
+                  )}
+                </div>
+              </div>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/png,image/jpeg,image/gif,image/webp"
+                className="hidden"
+                onChange={handleLogoFileChange}
+              />
+            </div>
+
+            {/* Chatbot Name */}
             <div className="space-y-2">
               <label className="text-sm font-medium text-[#2D3A31] font-sans">
                 Chatbot Name
@@ -77,6 +236,7 @@ export function CustomizePageClient({ chatbot }: { chatbot: ChatbotConfig }) {
               />
             </div>
 
+            {/* Welcome Message */}
             <div className="space-y-2">
               <label className="text-sm font-medium text-[#2D3A31] font-sans">
                 Welcome Message
@@ -90,6 +250,7 @@ export function CustomizePageClient({ chatbot }: { chatbot: ChatbotConfig }) {
               />
             </div>
 
+            {/* Fallback Message */}
             <div className="space-y-2">
               <label className="text-sm font-medium text-[#2D3A31] font-sans">
                 Fallback Message
@@ -106,6 +267,7 @@ export function CustomizePageClient({ chatbot }: { chatbot: ChatbotConfig }) {
               />
             </div>
 
+            {/* Brand Color */}
             <div className="space-y-2">
               <label className="text-sm font-medium text-[#2D3A31] font-sans">
                 Brand Color
@@ -121,6 +283,45 @@ export function CustomizePageClient({ chatbot }: { chatbot: ChatbotConfig }) {
                   {form.brandColor}
                 </span>
               </div>
+            </div>
+
+            {/* Personality */}
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-[#2D3A31] font-sans">
+                Personality
+              </label>
+              <PillSelector
+                options={PERSONALITY_OPTIONS}
+                value={form.personality}
+                brandColor={form.brandColor}
+                onChange={(v) => updateField("personality", v)}
+              />
+            </div>
+
+            {/* Tone */}
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-[#2D3A31] font-sans">
+                Tone
+              </label>
+              <PillSelector
+                options={TONE_OPTIONS}
+                value={form.tone}
+                brandColor={form.brandColor}
+                onChange={(v) => updateField("tone", v)}
+              />
+            </div>
+
+            {/* Response Style */}
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-[#2D3A31] font-sans">
+                Response Style
+              </label>
+              <PillSelector
+                options={RESPONSE_STYLE_OPTIONS}
+                value={form.responseStyle}
+                brandColor={form.brandColor}
+                onChange={(v) => updateField("responseStyle", v)}
+              />
             </div>
 
             {error && (
@@ -140,6 +341,7 @@ export function CustomizePageClient({ chatbot }: { chatbot: ChatbotConfig }) {
             </Button>
           </Card>
 
+          {/* Live Preview */}
           <div className="space-y-3">
             <p className="font-sans text-sm uppercase tracking-widest text-[#8C9A84]">
               Live Preview
@@ -149,10 +351,19 @@ export function CustomizePageClient({ chatbot }: { chatbot: ChatbotConfig }) {
                 className="px-5 py-4 flex items-center gap-3"
                 style={{ backgroundColor: form.brandColor }}
               >
-                <div className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center">
-                  <span className="text-white font-sans font-semibold text-sm">
-                    {form.name ? form.name.charAt(0).toUpperCase() : "C"}
-                  </span>
+                <div className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center overflow-hidden flex-shrink-0">
+                  {avatarSrc ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={avatarSrc}
+                      alt="Logo"
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <span className="text-white font-sans font-semibold text-sm">
+                      {avatarLetter}
+                    </span>
+                  )}
                 </div>
                 <span className="text-white font-sans font-semibold text-sm truncate">
                   {form.name || "My Chatbot"}
@@ -162,12 +373,21 @@ export function CustomizePageClient({ chatbot }: { chatbot: ChatbotConfig }) {
               <div className="bg-white px-4 py-5 space-y-3 min-h-[180px]">
                 <div className="flex items-start gap-2">
                   <div
-                    className="w-6 h-6 rounded-full flex-shrink-0 flex items-center justify-center mt-0.5"
-                    style={{ backgroundColor: form.brandColor }}
+                    className="w-6 h-6 rounded-full flex-shrink-0 flex items-center justify-center mt-0.5 overflow-hidden"
+                    style={{ backgroundColor: avatarSrc ? "transparent" : form.brandColor }}
                   >
-                    <span className="text-white font-sans font-bold text-xs">
-                      {form.name ? form.name.charAt(0).toUpperCase() : "C"}
-                    </span>
+                    {avatarSrc ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={avatarSrc}
+                        alt="Logo"
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <span className="text-white font-sans font-bold text-xs">
+                        {avatarLetter}
+                      </span>
+                    )}
                   </div>
                   <div className="bg-[#F2F0EB] rounded-2xl rounded-tl-sm px-4 py-2.5 max-w-[80%]">
                     <p className="font-sans text-xs text-[#2D3A31] leading-relaxed">
