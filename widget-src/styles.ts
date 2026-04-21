@@ -1,10 +1,14 @@
 export function getWidgetStyles(brandColor: string): string {
+  // Validate brandColor to prevent CSS injection
+  const safeBrandColor = /^#[0-9a-fA-F]{3,8}$/.test(brandColor)
+    ? brandColor
+    : "#C27B66"; // fallback to default
   return `
     #cb-container * { box-sizing: border-box; font-family: system-ui, -apple-system, sans-serif; }
     #cb-bubble {
       position: fixed; bottom: 24px; right: 24px; z-index: 999999;
       width: 56px; height: 56px; border-radius: 50%;
-      background-color: ${brandColor}; border: none; cursor: pointer;
+      background-color: ${safeBrandColor}; border: none; cursor: pointer;
       box-shadow: 0 4px 20px rgba(0,0,0,0.25);
       display: flex; align-items: center; justify-content: center;
       transition: transform 0.2s ease, box-shadow 0.2s ease;
@@ -24,7 +28,7 @@ export function getWidgetStyles(brandColor: string): string {
     #cb-window.cb-hidden { opacity: 0; transform: scale(0.92); pointer-events: none; }
     #cb-header {
       padding: 16px 20px; border-bottom: 1px solid #F2F0EB;
-      background: ${brandColor}; color: white;
+      background: ${safeBrandColor}; color: white;
       display: flex; align-items: center; justify-content: space-between;
     }
     #cb-header-left { display: flex; align-items: center; gap: 8px; flex: 1; min-width: 0; }
@@ -52,7 +56,7 @@ export function getWidgetStyles(brandColor: string): string {
     #cb-messages::-webkit-scrollbar-track { background: transparent; }
     #cb-messages::-webkit-scrollbar-thumb { background: #E6E2DA; border-radius: 2px; }
     .cb-msg { max-width: 85%; padding: 10px 14px; border-radius: 16px; font-size: 14px; line-height: 1.5; }
-    .cb-msg-user { background: ${brandColor}; color: white; align-self: flex-end; border-bottom-right-radius: 4px; }
+    .cb-msg-user { background: ${safeBrandColor}; color: white; align-self: flex-end; border-bottom-right-radius: 4px; }
     .cb-msg-assistant { background: #F2F0EB; color: #2D3A31; align-self: flex-start; border-bottom-left-radius: 4px; }
     .cb-msg-assistant.cb-streaming::after { content: '▋'; animation: cb-blink 1s infinite; }
     .cb-msg-assistant.cb-msg-error { background: #FEF2F2; color: #991B1B; font-style: italic; }
@@ -68,10 +72,10 @@ export function getWidgetStyles(brandColor: string): string {
       font-size: 14px; color: #2D3A31; outline: none;
       transition: border-color 0.2s;
     }
-    #cb-input:focus { border-color: ${brandColor}; }
+    #cb-input:focus { border-color: ${safeBrandColor}; }
     #cb-send-btn {
       width: 40px; height: 40px; border-radius: 50%;
-      background: ${brandColor}; border: none; cursor: pointer;
+      background: ${safeBrandColor}; border: none; cursor: pointer;
       display: flex; align-items: center; justify-content: center;
       flex-shrink: 0; transition: opacity 0.2s;
     }

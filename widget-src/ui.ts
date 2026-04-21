@@ -27,6 +27,10 @@ export function initUI(chatbotConfig: ChatbotConfig, appBaseUrl: string): void {
   styleEl.textContent = getWidgetStyles(config.brandColor);
   document.head.appendChild(styleEl);
 
+  const safeLogoUrl = config.logoUrl && /^https?:\/\//i.test(config.logoUrl)
+    ? config.logoUrl
+    : null;
+
   // Create container
   const container = document.createElement("div");
   container.id = "cb-container";
@@ -40,9 +44,9 @@ export function initUI(chatbotConfig: ChatbotConfig, appBaseUrl: string): void {
       <div id="cb-header">
         <div id="cb-header-left">
           <div id="cb-header-avatar">${
-            config.logoUrl
-              ? `<img src="${escapeHtml(config.logoUrl)}" alt="" />`
-              : `<span>${escapeHtml(config.name.charAt(0).toUpperCase())}</span>`
+            safeLogoUrl
+              ? `<img src="${escapeHtml(safeLogoUrl)}" alt="" />`
+              : `<span>${escapeHtml((config.name.trim().charAt(0) || "?").toUpperCase())}</span>`
           }</div>
           <span id="cb-header-title">${escapeHtml(config.name)}</span>
         </div>
