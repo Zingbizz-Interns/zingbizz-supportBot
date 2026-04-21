@@ -9,6 +9,13 @@ export interface ScrapedPage {
   content: string;
 }
 
+export type ScrapeFailureReason = "blocked" | "no-content";
+
+export interface ScrapeWebsiteResult {
+  pages: ScrapedPage[];
+  failureReason?: ScrapeFailureReason;
+}
+
 const MAX_TOTAL_SCRAPED_CONTENT_CHARS = MAX_TOTAL_PAGE_CHARS;
 const MAX_HTML_BYTES = 2 * 1024 * 1024;
 const MAX_REDIRECTS = 5;
@@ -153,7 +160,11 @@ function extractInternalLinks(
   return [...new Set(links)];
 }
 
-async function fetchPage(url: string): Promise<{ html: string; finalUrl: string } | null> {
+type FetchPageResult =
+  | { ok: true; html: string; finalUrl: string }
+  | { ok: false; reason: "blocked" | "fetch-failed" };
+
+async function fetchPage(url: string): Promise<FetchPageResult> {
   try {
     let currentUrl = url;
 
@@ -175,29 +186,34 @@ async function fetchPage(url: string): Promise<{ html: string; finalUrl: string 
 
       if (res.status >= 300 && res.status < 400) {
         const location = res.headers.get("location");
-        if (!location) return null;
+        if (!location) return { ok: false, reason: "fetch-failed" };
 
         currentUrl = new URL(location, currentUrl).toString();
         continue;
       }
 
-      if (!res.ok) return null;
+      if (!res.ok) {
+        if (res.status === 401 || res.status === 403 || res.status === 429) {
+          return { ok: false, reason: "blocked" };
+        }
+        return { ok: false, reason: "fetch-failed" };
+      }
       const contentType = res.headers.get("content-type") ?? "";
-      if (!contentType.includes("text/html")) return null;
+      if (!contentType.includes("text/html")) return { ok: false, reason: "fetch-failed" };
       const contentLength = Number(res.headers.get("content-length") ?? "0");
       if (Number.isFinite(contentLength) && contentLength > MAX_HTML_BYTES) {
         console.warn("[scrape] Skipping oversized page:", currentUrl, contentLength);
-        return null;
+        return { ok: false, reason: "fetch-failed" };
       }
 
       const html = await readTextWithLimit(res, MAX_HTML_BYTES);
-      return { html, finalUrl: res.url || currentUrl };
+      return { ok: true, html, finalUrl: res.url || currentUrl };
     }
 
     console.warn("[scrape] Too many redirects:", url);
-    return null;
+    return { ok: false, reason: "fetch-failed" };
   } catch {
-    return null;
+    return { ok: false, reason: "fetch-failed" };
   }
 }
 
@@ -237,13 +253,22 @@ async function readTextWithLimit(res: Response, maxBytes: number): Promise<strin
 export async function scrapeWebsite(
   url: string,
   maxPages = 10
-): Promise<ScrapedPage[]> {
+): Promise<ScrapeWebsiteResult> {
   const results: ScrapedPage[] = [];
   const visited = new Set<string>();
   const queued = new Set<string>(); // O(1) lookup instead of Array.includes
   const queue: string[] = [url];
   queued.add(url);
   let totalContentChars = 0;
+  let initialPageBlocked = false;
+
+  let normalizedStartUrl = url;
+  try {
+    const parsed = new URL(url);
+    normalizedStartUrl = parsed.origin + parsed.pathname.replace(/\/$/, "");
+  } catch {
+    return { pages: [], failureReason: "no-content" };
+  }
 
   while (queue.length > 0 && results.length < maxPages) {
     const currentUrl = queue.shift()!;
@@ -261,7 +286,12 @@ export async function scrapeWebsite(
     visited.add(normalizedUrl);
 
     const fetched = await fetchPage(currentUrl);
-    if (!fetched) continue;
+    if (!fetched.ok) {
+      if (normalizedUrl === normalizedStartUrl && fetched.reason === "blocked") {
+        initialPageBlocked = true;
+      }
+      continue;
+    }
 
     const $ = cheerio.load(fetched.html);
     const title = $("title").text().trim() || $("h1").first().text().trim() || normalizedUrl;
@@ -298,5 +328,9 @@ export async function scrapeWebsite(
     }
   }
 
-  return results;
+  if (results.length === 0) {
+    return { pages: [], failureReason: initialPageBlocked ? "blocked" : "no-content" };
+  }
+
+  return { pages: results };
 }
