@@ -27,6 +27,10 @@ export default async function CustomizePage() {
     welcomeMessage: chatbot.welcomeMessage,
     fallbackMessage: chatbot.fallbackMessage,
     brandColor: chatbot.brandColor,
+    logoUrl: chatbot.logoUrl || null,
+    personality: chatbot.personality,
+    tone: chatbot.tone,
+    responseStyle: chatbot.responseStyle,
   };
 
   return <CustomizePageClient chatbot={chatbotConfig} />;

@@ -35,6 +35,16 @@ export const updateChatbotSchema = z
         `Must be a valid hex color (e.g. ${COLORS.primary})`
       )
       .optional(),
+    logoUrl: z.string().url("Must be a valid URL").nullable().optional(),
+    personality: z
+      .enum(["friendly", "professional", "empathetic", "authoritative", "witty"])
+      .optional(),
+    tone: z
+      .enum(["formal", "casual", "professional", "conversational", "direct"])
+      .optional(),
+    responseStyle: z
+      .enum(["concise", "detailed", "conversational", "technical"])
+      .optional(),
   })
   .refine(
     (data) => Object.values(data).some((v) => v !== undefined),

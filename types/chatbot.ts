@@ -10,6 +10,10 @@ export interface ChatbotConfig extends ChatbotSummary {
   welcomeMessage: string;
   fallbackMessage: string;
   brandColor: string;
+  logoUrl: string | null;
+  personality: string;
+  tone: string;
+  responseStyle: string;
 }
 
 export interface ScrapedPage {
