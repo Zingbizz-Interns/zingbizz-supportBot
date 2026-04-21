@@ -51,6 +51,7 @@ function PillSelector({ options, value, brandColor, onChange }: PillSelectorProp
           <button
             key={opt.value}
             type="button"
+            aria-pressed={selected}
             onClick={() => onChange(opt.value)}
             className="px-4 py-1.5 rounded-full text-sm font-sans font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-offset-1"
             style={
@@ -116,6 +117,10 @@ export function CustomizePageClient({ chatbot }: { chatbot: ChatbotConfig }) {
   function handleLogoFileChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
+    if (file.size > 2 * 1024 * 1024) {
+      setError("Logo must be 2 MB or smaller.");
+      return;
+    }
     setPendingLogoFile(file);
   }
 
@@ -136,7 +141,6 @@ export function CustomizePageClient({ chatbot }: { chatbot: ChatbotConfig }) {
           { method: "POST", body: formData }
         );
         logoUrl = result.logoUrl;
-        updateField("logoUrl", logoUrl);
         setPendingLogoFile(null);
       }
 
@@ -146,6 +150,7 @@ export function CustomizePageClient({ chatbot }: { chatbot: ChatbotConfig }) {
         body: JSON.stringify({ ...form, logoUrl }),
       });
 
+      setForm((prev) => ({ ...prev, logoUrl }));
       setSuccessMsg("Changes saved successfully.");
     } catch (err: unknown) {
       setError(extractErrorMessage(err));
@@ -174,7 +179,7 @@ export function CustomizePageClient({ chatbot }: { chatbot: ChatbotConfig }) {
 
             {/* Logo Upload */}
             <div className="space-y-3">
-              <label className="text-sm font-medium text-[#2D3A31] font-sans">
+              <label htmlFor="chatbot-logo" className="text-sm font-medium text-[#2D3A31] font-sans">
                 Logo
               </label>
               <div className="flex items-center gap-4">
@@ -214,6 +219,7 @@ export function CustomizePageClient({ chatbot }: { chatbot: ChatbotConfig }) {
                 </div>
               </div>
               <input
+                id="chatbot-logo"
                 ref={fileInputRef}
                 type="file"
                 accept="image/png,image/jpeg,image/gif,image/webp"
@@ -224,10 +230,11 @@ export function CustomizePageClient({ chatbot }: { chatbot: ChatbotConfig }) {
 
             {/* Chatbot Name */}
             <div className="space-y-2">
-              <label className="text-sm font-medium text-[#2D3A31] font-sans">
+              <label htmlFor="chatbot-name" className="text-sm font-medium text-[#2D3A31] font-sans">
                 Chatbot Name
               </label>
               <input
+                id="chatbot-name"
                 type="text"
                 value={form.name}
                 onChange={(e) => updateField("name", e.target.value)}
@@ -238,10 +245,11 @@ export function CustomizePageClient({ chatbot }: { chatbot: ChatbotConfig }) {
 
             {/* Welcome Message */}
             <div className="space-y-2">
-              <label className="text-sm font-medium text-[#2D3A31] font-sans">
+              <label htmlFor="chatbot-welcome" className="text-sm font-medium text-[#2D3A31] font-sans">
                 Welcome Message
               </label>
               <textarea
+                id="chatbot-welcome"
                 value={form.welcomeMessage}
                 onChange={(e) => updateField("welcomeMessage", e.target.value)}
                 placeholder="Hi! How can I help you today?"
@@ -252,13 +260,14 @@ export function CustomizePageClient({ chatbot }: { chatbot: ChatbotConfig }) {
 
             {/* Fallback Message */}
             <div className="space-y-2">
-              <label className="text-sm font-medium text-[#2D3A31] font-sans">
+              <label htmlFor="chatbot-fallback" className="text-sm font-medium text-[#2D3A31] font-sans">
                 Fallback Message
               </label>
               <p className="text-xs text-[#8C9A84] font-sans">
                 Shown when no relevant answer is found.
               </p>
               <textarea
+                id="chatbot-fallback"
                 value={form.fallbackMessage}
                 onChange={(e) => updateField("fallbackMessage", e.target.value)}
                 placeholder="I'm not sure about that. Please contact support."
@@ -269,11 +278,12 @@ export function CustomizePageClient({ chatbot }: { chatbot: ChatbotConfig }) {
 
             {/* Brand Color */}
             <div className="space-y-2">
-              <label className="text-sm font-medium text-[#2D3A31] font-sans">
+              <label htmlFor="chatbot-brand-color" className="text-sm font-medium text-[#2D3A31] font-sans">
                 Brand Color
               </label>
               <div className="flex items-center gap-4">
                 <input
+                  id="chatbot-brand-color"
                   type="color"
                   value={form.brandColor}
                   onChange={(e) => updateField("brandColor", e.target.value)}
@@ -328,7 +338,7 @@ export function CustomizePageClient({ chatbot }: { chatbot: ChatbotConfig }) {
               <p className="text-[#C27B66] text-sm font-sans">{error}</p>
             )}
             {successMsg && (
-              <p className="text-[#8C9A84] text-sm font-sans">{successMsg}</p>
+              <p aria-live="polite" className="text-[#8C9A84] text-sm font-sans">{successMsg}</p>
             )}
 
             <Button
@@ -404,6 +414,9 @@ export function CustomizePageClient({ chatbot }: { chatbot: ChatbotConfig }) {
                   </p>
                 </div>
                 <button
+                  type="button"
+                  aria-label="Send (preview)"
+                  tabIndex={-1}
                   className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0"
                   style={{ backgroundColor: form.brandColor }}
                 >
