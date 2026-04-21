@@ -27,7 +27,7 @@ export async function createChatbot(data: NewChatbot): Promise<Chatbot> {
 
 export async function updateChatbot(
   id: string,
-  data: Partial<Pick<Chatbot, "name" | "welcomeMessage" | "fallbackMessage" | "brandColor" | "trainingStatus" | "updatedAt">>
+  data: Partial<Pick<Chatbot, "name" | "welcomeMessage" | "fallbackMessage" | "brandColor" | "logoUrl" | "personality" | "tone" | "responseStyle" | "trainingStatus" | "updatedAt">>
 ): Promise<Chatbot> {
   const result = await db
     .update(chatbots)

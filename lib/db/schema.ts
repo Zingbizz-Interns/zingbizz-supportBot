@@ -79,6 +79,10 @@ export const chatbots = pgTable(
       .notNull()
       .default("I'm not sure about that. Please contact support for assistance."),
     brandColor: text("brand_color").notNull().default(COLORS.primary),
+    logoUrl: text("logo_url"),
+    personality: text("personality").notNull().default("friendly"),
+    tone: text("tone").notNull().default("professional"),
+    responseStyle: text("response_style").notNull().default("concise"),
     trainingStatus: text("training_status").notNull().default("idle"),
     // trainingStatus values: idle | training | ready | error
     createdAt: timestamp("created_at").defaultNow().notNull(),
