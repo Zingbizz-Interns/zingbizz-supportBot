@@ -43,6 +43,13 @@
       "when": 1776740822634,
       "tag": "0005_cuddly_purifiers",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1776751800000,
+      "tag": "0007_chatbot_personality",
+      "breakpoints": true
     }
   ]
 }

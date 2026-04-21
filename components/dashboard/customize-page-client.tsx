@@ -104,11 +104,16 @@ export function CustomizePageClient({ chatbot }: { chatbot: ChatbotConfig }) {
 
   // Revoke object URLs on change to prevent memory leaks
   useEffect(() => {
-    if (!pendingLogoFile) return;
+    if (!pendingLogoFile) {
+      setPreviewUrl(form.logoUrl ?? null);
+      return;
+    }
+
     const url = URL.createObjectURL(pendingLogoFile);
     setPreviewUrl(url);
+
     return () => URL.revokeObjectURL(url);
-  }, [pendingLogoFile]);
+  }, [pendingLogoFile, form.logoUrl]);
 
   function updateField<K extends keyof FormState>(field: K, value: FormState[K]) {
     setForm((prev) => ({ ...prev, [field]: value }));
@@ -119,8 +124,10 @@ export function CustomizePageClient({ chatbot }: { chatbot: ChatbotConfig }) {
     if (!file) return;
     if (file.size > 2 * 1024 * 1024) {
       setError("Logo must be 2 MB or smaller.");
+      e.currentTarget.value = "";
       return;
     }
+    setError(null);
     setPendingLogoFile(file);
   }
 
@@ -151,6 +158,7 @@ export function CustomizePageClient({ chatbot }: { chatbot: ChatbotConfig }) {
       });
 
       setForm((prev) => ({ ...prev, logoUrl }));
+      setPreviewUrl(logoUrl ?? null);
       setSuccessMsg("Changes saved successfully.");
     } catch (err: unknown) {
       setError(extractErrorMessage(err));

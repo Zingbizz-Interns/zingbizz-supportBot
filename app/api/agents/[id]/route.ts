@@ -7,6 +7,15 @@ import { pickDefined } from "@/lib/utils";
 import { parseBody } from "@/lib/validation/parse";
 import { updateChatbotSchema } from "@/lib/validation/schemas";
 
+function isManagedLogoUrl(url: string, chatbotId: string): boolean {
+  try {
+    const parsed = new URL(url);
+    return parsed.pathname.startsWith(`/logos/${chatbotId}/`);
+  } catch {
+    return false;
+  }
+}
+
 async function getAuthorizedChatbot(id: string, userId: string) {
   const chatbot = await getChatbotById(id);
   if (!chatbot) return { chatbot: null, error: "Not found", status: 404 };
@@ -46,18 +55,17 @@ export async function PATCH(
     responseStyle,
   } = parsed.data;
 
-  // Clean up old logo blob when logoUrl is changing to a different value
-  if (
+  const isReplacingLogo =
     logoUrl !== undefined &&
-    chatbot.logoUrl &&
-    chatbot.logoUrl !== logoUrl
-  ) {
-    try {
-      await del(chatbot.logoUrl);
-    } catch {
-      // Non-fatal: old blob cleanup failure should not block the update
-    }
-  }
+    chatbot.logoUrl !== logoUrl;
+  const oldManagedLogoUrl =
+    isReplacingLogo && chatbot.logoUrl && isManagedLogoUrl(chatbot.logoUrl, id)
+      ? chatbot.logoUrl
+      : null;
+  const newManagedLogoUrl =
+    typeof logoUrl === "string" && isManagedLogoUrl(logoUrl, id)
+      ? logoUrl
+      : null;
 
   try {
     const updates: Parameters<typeof updateChatbot>[1] = pickDefined({
@@ -72,8 +80,23 @@ export async function PATCH(
     });
 
     const updated = await updateChatbot(id, updates);
+
+    if (oldManagedLogoUrl) {
+      void del(oldManagedLogoUrl).catch(() => {
+        // Non-fatal: old blob cleanup failure should not block the update
+      });
+    }
+
     return jsonResponse({ chatbot: updated });
   } catch (err) {
+    if (
+      newManagedLogoUrl &&
+      newManagedLogoUrl !== chatbot.logoUrl
+    ) {
+      void del(newManagedLogoUrl).catch(() => {
+        // Non-fatal: best-effort cleanup for a newly uploaded logo when persistence fails
+      });
+    }
     return errorResponse(extractErrorMessage(err, "Internal server error"), 500);
   }
 }
