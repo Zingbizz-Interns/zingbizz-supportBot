@@ -9,6 +9,7 @@ export interface ChatbotConfig {
   welcomeMessage: string;
   brandColor: string;
   isReady: boolean;
+  logoUrl: string | null;
 }
 
 export interface Message {

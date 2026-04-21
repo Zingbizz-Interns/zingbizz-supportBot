@@ -27,7 +27,16 @@ export function getWidgetStyles(brandColor: string): string {
       background: ${brandColor}; color: white;
       display: flex; align-items: center; justify-content: space-between;
     }
-    #cb-header-title { font-weight: 600; font-size: 15px; }
+    #cb-header-left { display: flex; align-items: center; gap: 8px; flex: 1; min-width: 0; }
+    #cb-header-avatar {
+      width: 28px; height: 28px; border-radius: 50%;
+      background: rgba(255,255,255,0.2);
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0; overflow: hidden;
+      font-size: 13px; font-weight: 600; color: #fff;
+    }
+    #cb-header-avatar img { width: 100%; height: 100%; object-fit: cover; }
+    #cb-header-title { font-weight: 600; font-size: 15px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     #cb-close-btn {
       background: none; border: none; cursor: pointer; color: white;
       padding: 4px; border-radius: 50%; display: flex; align-items: center;

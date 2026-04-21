@@ -38,7 +38,14 @@ export function initUI(chatbotConfig: ChatbotConfig, appBaseUrl: string): void {
     </button>
     <div id="cb-window" class="cb-hidden" role="dialog" aria-label="${escapeHtml(config.name)} chat">
       <div id="cb-header">
-        <span id="cb-header-title">${escapeHtml(config.name)}</span>
+        <div id="cb-header-left">
+          <div id="cb-header-avatar">${
+            config.logoUrl
+              ? `<img src="${escapeHtml(config.logoUrl)}" alt="" />`
+              : `<span>${escapeHtml(config.name.charAt(0).toUpperCase())}</span>`
+          }</div>
+          <span id="cb-header-title">${escapeHtml(config.name)}</span>
+        </div>
         <button id="cb-close-btn" aria-label="Close chat">
           <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
             <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
