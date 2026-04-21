@@ -59,7 +59,7 @@ export async function POST(
     const blob = await put(
       `logos/${id}/${Date.now()}-${file.name.replace(/[^a-zA-Z0-9._-]/g, "-")}`,
       file,
-      { access: "public", addRandomSuffix: false }
+      { access: "public", addRandomSuffix: true }
     );
 
     return jsonResponse({ logoUrl: blob.url });
