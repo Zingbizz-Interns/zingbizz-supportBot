@@ -57,7 +57,8 @@
       "Bash(npm test:*)",
       "Bash(npm ls:*)",
       "Bash(grep -E \"\\\\.\\(sql|ts|js\\)$\")",
-      "Bash(python3 -c ':*)"
+      "Bash(python3 -c ':*)",
+      "WebFetch(domain:ai-sdk.dev)"
     ]
   }
 }

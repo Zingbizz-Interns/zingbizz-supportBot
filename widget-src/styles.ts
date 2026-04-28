@@ -83,6 +83,18 @@ export function getWidgetStyles(brandColor: string): string {
     #cb-send-btn svg { width: 16px; height: 16px; fill: white; }
     #cb-send-btn:disabled { opacity: 0.4; cursor: not-allowed; }
     #cb-powered { text-align: center; font-size: 11px; color: #8C9A84; padding: 6px 0 0; }
+    .cb-md-pre { background: #1e1e1e; color: #d4d4d4; border-radius: 6px; padding: 10px 12px; margin: 6px 0; overflow-x: auto; font-size: 12px; line-height: 1.6; white-space: pre; }
+    .cb-md-pre code { background: none; padding: 0; font-size: inherit; color: inherit; border-radius: 0; }
+    .cb-md-code { background: rgba(0,0,0,0.08); border-radius: 3px; padding: 1px 5px; font-family: ui-monospace, 'Cascadia Code', 'Source Code Pro', monospace; font-size: 12px; color: #2D3A31; }
+    .cb-md-link { color: #C27B66; text-decoration: underline; text-underline-offset: 2px; word-break: break-all; }
+    .cb-md-link:hover { color: #2D3A31; }
+    .cb-md-h1 { font-size: 16px; font-weight: 700; margin: 8px 0 4px; line-height: 1.3; }
+    .cb-md-h2 { font-size: 15px; font-weight: 700; margin: 6px 0 3px; line-height: 1.3; }
+    .cb-md-h3 { font-size: 14px; font-weight: 600; margin: 4px 0 2px; line-height: 1.3; }
+    .cb-md-ul, .cb-md-ol { margin: 4px 0; padding-left: 20px; }
+    .cb-md-ul li, .cb-md-ol li { margin: 2px 0; line-height: 1.5; }
+    .cb-md-ul { list-style: disc; }
+    .cb-md-ol { list-style: decimal; }
     @media (max-width: 420px) {
       #cb-window { width: calc(100vw - 16px); right: 8px; bottom: 80px; }
       #cb-bubble { bottom: 16px; right: 16px; }

@@ -13,7 +13,7 @@ export async function OPTIONS() {
 }
 
 export async function GET(
-  _request: Request,
+  request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id } = await params;
@@ -32,13 +32,15 @@ export async function GET(
         welcomeMessage: chatbot.welcomeMessage,
         brandColor: chatbot.brandColor,
         isReady: chatbot.trainingStatus === "ready",
-        logoUrl: chatbot.logoUrl ?? null,
+        logoUrl: chatbot.logoUrl
+          ? `${new URL(request.url).origin}/api/agents/${chatbot.id}/logo?v=${chatbot.updatedAt.getTime()}`
+          : null,
       },
       {
         status: 200,
         headers: {
           ...CORS_HEADERS,
-          "Cache-Control": "public, max-age=60",
+          "Cache-Control": "no-store, max-age=0",
         },
       }
     );

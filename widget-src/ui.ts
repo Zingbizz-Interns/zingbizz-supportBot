@@ -1,6 +1,7 @@
 import type { ChatbotConfig, Message, Source } from "./types";
 import { getWidgetStyles } from "./styles";
 import { sendMessage } from "./api";
+import { renderMarkdown } from "./markdown";
 
 let isOpen = false;
 let isStreaming = false;
@@ -111,7 +112,11 @@ function addMessage(role: "user" | "assistant", content: string): HTMLElement {
   const messagesEl = cbEl("cb-messages")!;
   const msgEl = document.createElement("div");
   msgEl.className = `cb-msg cb-msg-${role}`;
-  msgEl.textContent = content;
+  if (role === "assistant") {
+    msgEl.innerHTML = renderMarkdown(content);
+  } else {
+    msgEl.textContent = content;
+  }
   messagesEl.appendChild(msgEl);
   scrollToBottom();
   return msgEl;
@@ -163,7 +168,7 @@ async function handleSend(): Promise<void> {
     baseUrl,
     (token) => {
       fullContent += token;
-      assistantEl.textContent = fullContent;
+      assistantEl.innerHTML = renderMarkdown(fullContent);
       scrollToBottom();
     },
     (sources: Source[], tokensReceived: boolean) => {

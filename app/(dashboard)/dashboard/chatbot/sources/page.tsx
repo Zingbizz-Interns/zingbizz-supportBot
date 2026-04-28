@@ -55,7 +55,11 @@ export default async function SourcesPage() {
       chatbotName={chatbot.name}
       welcomeMessage={chatbot.welcomeMessage}
       brandColor={chatbot.brandColor}
-      logoUrl={chatbot.logoUrl ?? null}
+      logoUrl={
+        chatbot.logoUrl
+          ? `/api/agents/${chatbot.id}/logo?v=${chatbot.updatedAt.getTime()}`
+          : null
+      }
       initialSources={sources}
       initialTrainingStatus={trainingStatus}
     />

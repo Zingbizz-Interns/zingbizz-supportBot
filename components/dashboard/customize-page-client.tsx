@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { Save } from "lucide-react";
+import { Check, Save } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { COLORS } from "@/lib/design-tokens";
@@ -81,10 +81,12 @@ interface FormState {
   responseStyle: string;
 }
 
-// ─── Main component ───────────────────────────────────────────────────────────
+function buildLogoPreviewUrl(chatbotId: string, version: string | number): string {
+  return `/api/agents/${chatbotId}/logo?v=${version}`;
+}
 
-export function CustomizePageClient({ chatbot }: { chatbot: ChatbotConfig }) {
-  const [form, setForm] = useState<FormState>({
+function createFormState(chatbot: ChatbotConfig): FormState {
+  return {
     name: chatbot.name ?? "",
     welcomeMessage: chatbot.welcomeMessage ?? "",
     fallbackMessage: chatbot.fallbackMessage ?? "",
@@ -93,29 +95,48 @@ export function CustomizePageClient({ chatbot }: { chatbot: ChatbotConfig }) {
     personality: chatbot.personality ?? "friendly",
     tone: chatbot.tone ?? "professional",
     responseStyle: chatbot.responseStyle ?? "concise",
-  });
+  };
+}
 
+function formsEqual(a: FormState, b: FormState): boolean {
+  return (
+    a.name === b.name &&
+    a.welcomeMessage === b.welcomeMessage &&
+    a.fallbackMessage === b.fallbackMessage &&
+    a.brandColor === b.brandColor &&
+    a.logoUrl === b.logoUrl &&
+    a.personality === b.personality &&
+    a.tone === b.tone &&
+    a.responseStyle === b.responseStyle
+  );
+}
+
+// ─── Main component ───────────────────────────────────────────────────────────
+
+export function CustomizePageClient({ chatbot }: { chatbot: ChatbotConfig }) {
+  const [form, setForm] = useState<FormState>(() => createFormState(chatbot));
+  const [savedForm, setSavedForm] = useState<FormState>(() => createFormState(chatbot));
   const [pendingLogoFile, setPendingLogoFile] = useState<File | null>(null);
-  const [previewUrl, setPreviewUrl] = useState<string | null>(chatbot.logoUrl ?? null);
-  const [saving, setSaving] = useState(false);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(() =>
+    chatbot.logoUrl ? buildLogoPreviewUrl(chatbot.id, Date.now()) : null
+  );
+  const [savePhase, setSavePhase] = useState<"idle" | "uploading-logo" | "saving" | "saved">("idle");
   const [error, setError] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Revoke object URLs on change to prevent memory leaks
   useEffect(() => {
-    if (!pendingLogoFile) {
-      setPreviewUrl(form.logoUrl ?? null);
-      return;
-    }
+    if (!pendingLogoFile) return;
 
     const url = URL.createObjectURL(pendingLogoFile);
     setPreviewUrl(url);
 
     return () => URL.revokeObjectURL(url);
-  }, [pendingLogoFile, form.logoUrl]);
+  }, [pendingLogoFile]);
 
   function updateField<K extends keyof FormState>(field: K, value: FormState[K]) {
+    setSavePhase("idle");
+    setSuccessMsg(null);
     setForm((prev) => ({ ...prev, [field]: value }));
   }
 
@@ -128,47 +149,67 @@ export function CustomizePageClient({ chatbot }: { chatbot: ChatbotConfig }) {
       return;
     }
     setError(null);
+    setSavePhase("idle");
+    setSuccessMsg(null);
     setPendingLogoFile(file);
+    e.currentTarget.value = "";
   }
 
   async function handleSave() {
-    setSaving(true);
+    setSavePhase(pendingLogoFile ? "uploading-logo" : "saving");
     setError(null);
     setSuccessMsg(null);
 
     try {
       let logoUrl = form.logoUrl;
 
-      // Upload new logo if one was selected
       if (pendingLogoFile) {
         const formData = new FormData();
         formData.append("image", pendingLogoFile);
-        const result = await fetchJsonOrThrow<{ logoUrl: string }>(
+        const uploadResult = await fetchJsonOrThrow<{ logoUrl: string }>(
           `/api/agents/${chatbot.id}/logo`,
-          { method: "POST", body: formData }
+          {
+            method: "POST",
+            body: formData,
+          }
         );
-        logoUrl = result.logoUrl;
+        logoUrl = uploadResult.logoUrl;
         setPendingLogoFile(null);
       }
 
+      setSavePhase("saving");
       await fetchJsonOrThrow<{ chatbot: ChatbotConfig }>(`/api/agents/${chatbot.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ ...form, logoUrl }),
       });
 
-      setForm((prev) => ({ ...prev, logoUrl }));
-      setPreviewUrl(logoUrl ?? null);
+      const nextSavedForm = { ...form, logoUrl };
+      setForm(nextSavedForm);
+      setSavedForm(nextSavedForm);
+      setPreviewUrl(
+        logoUrl ? buildLogoPreviewUrl(chatbot.id, Date.now()) : null
+      );
+      setSavePhase("saved");
       setSuccessMsg("Changes saved successfully.");
     } catch (err: unknown) {
+      setSavePhase("idle");
       setError(extractErrorMessage(err));
-    } finally {
-      setSaving(false);
     }
   }
 
+  const isSaving = savePhase === "uploading-logo" || savePhase === "saving";
+  const hasUnsavedChanges = pendingLogoFile !== null || !formsEqual(form, savedForm);
   const avatarLetter = form.name ? form.name.charAt(0).toUpperCase() : "C";
   const avatarSrc = previewUrl;
+  const saveButtonLabel =
+    savePhase === "uploading-logo"
+      ? "Uploading logo..."
+      : savePhase === "saving"
+        ? "Saving changes..."
+        : savePhase === "saved" && !hasUnsavedChanges
+          ? "Saved"
+          : "Save Changes";
 
   return (
     <div className="py-8 md:py-12">
@@ -351,11 +392,16 @@ export function CustomizePageClient({ chatbot }: { chatbot: ChatbotConfig }) {
 
             <Button
               onClick={handleSave}
-              loading={saving}
+              loading={isSaving}
+              disabled={isSaving || !hasUnsavedChanges}
               className="w-full sm:w-auto"
             >
-              <Save size={14} strokeWidth={1.5} className="mr-2" />
-              Save Changes
+              {!isSaving && savePhase === "saved" && !hasUnsavedChanges ? (
+                <Check size={14} strokeWidth={1.5} className="mr-2" />
+              ) : !isSaving ? (
+                <Save size={14} strokeWidth={1.5} className="mr-2" />
+              ) : null}
+              {saveButtonLabel}
             </Button>
           </Card>
 
